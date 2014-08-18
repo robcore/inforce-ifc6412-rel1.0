@@ -1,0 +1,26 @@
+From 1e450490dfa415a923839dcad9fb8bd6c5a74e29 Mon Sep 17 00:00:00 2001
+From: Mahaboob Vali <vali@inforcecomputing.com>
+Date: Mon, 11 Aug 2014 12:16:54 +0530
+Subject: [PATCH] Audio not played or Sound card not detected
+
+Change-Id: Ie7544748223845025026b4433f5d557dee05cf5e
+---
+ arch/arm/mach-msm/board-8064-pmic.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm/mach-msm/board-8064-pmic.c b/arch/arm/mach-msm/board-8064-pmic.c
+index dd36277..61f234f 100644
+--- a/arch/arm/mach-msm/board-8064-pmic.c
++++ b/arch/arm/mach-msm/board-8064-pmic.c
+@@ -125,7 +125,7 @@ static struct pm8xxx_gpio_init pm8921_gpios[] __initdata = {
+ 	PM8921_GPIO_INPUT(35, PM_GPIO_PULL_UP_30),
+ 	PM8921_GPIO_INPUT(38, PM_GPIO_PULL_UP_30),
+ 	/* TABLA CODEC RESET */
+-	PM8921_GPIO_OUTPUT(34, 0, MED),
++	PM8921_GPIO_OUTPUT(34, 1, HIGH),
+ 	PM8921_GPIO_OUTPUT(13, 0, HIGH),               /* PCIE_CLK_PWR_EN */
+ 	PM8921_GPIO_INPUT(6, PM_GPIO_PULL_UP_30),     /* PCIE_WAKE_N */
+ 	PM8921_GPIO_OUTPUT(43, 1, HIGH),
+-- 
+1.7.9.5
+

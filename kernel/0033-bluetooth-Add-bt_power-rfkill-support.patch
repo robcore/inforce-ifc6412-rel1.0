@@ -1,0 +1,27 @@
+From 597bb9025efd40a63886df70c003cf84c384a627 Mon Sep 17 00:00:00 2001
+From: Chan-Taek Park <chantaek@inforcecomputing.com>
+Date: Mon, 30 Dec 2013 11:23:29 +0530
+Subject: [PATCH 33/35] bluetooth: Add bt_power (rfkill) support
+
+Change-Id: I3c9deb0889868155b895b71dddb84d984707fbd4
+Signed-off-by: Inforce Computing <inforce@inforcecomputing.com>
+---
+ arch/arm/mach-msm/board-8064.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm/mach-msm/board-8064.c b/arch/arm/mach-msm/board-8064.c
+index b8a0414..971f4a3 100644
+--- a/arch/arm/mach-msm/board-8064.c
++++ b/arch/arm/mach-msm/board-8064.c
+@@ -3600,7 +3600,7 @@ static void __init apq8064_cdp_init(void)
+ 		platform_device_register(&mpq8064_device_uartdm_gsbi6);
+ 	}
+ #if defined(CONFIG_BT) && defined(CONFIG_MARIMBA_CORE)
+-	if (machine_is_mpq8064_hrd())
++	if (machine_is_mpq8064_hrd() || machine_is_apq8064_cdp() || machine_is_apq8064_ifc6412())
+ 		apq8064_bt_power_init();
+ #endif
+ 
+-- 
+1.7.9.5
+

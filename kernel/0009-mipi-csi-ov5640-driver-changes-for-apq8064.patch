@@ -1,0 +1,74 @@
+From 761747bcd226c9c34c93b275d39799409630d758 Mon Sep 17 00:00:00 2001
+From: Suman Kumar <suman@inforcecomputing.com>
+Date: Thu, 30 Jan 2014 18:02:30 +0530
+Subject: [PATCH 09/35] mipi csi: ov5640: driver changes for apq8064
+
+Change-Id: I4e923acb032d5c6da70a59b3c13104910d60de61
+Signed-off-by: Suman Kumar <suman@inforcecomputing.com>
+---
+ drivers/media/video/msm/Kconfig          |   14 ++++++++------
+ drivers/media/video/msm/Makefile         |    3 ++-
+ drivers/media/video/msm/sensors/Makefile |    1 +
+ 3 files changed, 11 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/media/video/msm/Kconfig b/drivers/media/video/msm/Kconfig
+index e08c673..5b18322 100644
+--- a/drivers/media/video/msm/Kconfig
++++ b/drivers/media/video/msm/Kconfig
+@@ -36,12 +36,6 @@ config IMX074
+ 	depends on MSM_CAMERA
+ 	---help---
+ 	SONY 13.5 MP Bayer Sensor
+-config OV5640
+-	bool "Sensor OV5640 (YUV 5M)"
+-	depends on MSM_CAMERA && !MSM_CAMERA_V4L2
+-	default n
+-	---help---
+-	Omni 5M YUV Sensor
+ 
+ config OV5647
+ 	bool "Sensor ov5647 (BAYER 5M)"
+@@ -61,6 +55,14 @@ config WEBCAM_OV7692_QRD
+ 	default n
+ 	---help---
+ 	  Omni Vision VGA YUV Sensor for QRD Devices
++
++config OV5640
++        bool "Sensor OV5640 (YUV 5M)"
++        depends on MSM_CAMERA
++        default y
++        ---help---
++        OmniVision 5 MP YUV Sensor for Inforce APQ8064 dragon boards
++
+ config MT9M114
+         bool "Sensor MT9M114 (YUV 1.26M)"
+         depends on MSM_CAMERA
+diff --git a/drivers/media/video/msm/Makefile b/drivers/media/video/msm/Makefile
+index 5921632..3eb7a97 100644
+--- a/drivers/media/video/msm/Makefile
++++ b/drivers/media/video/msm/Makefile
+@@ -51,7 +51,8 @@ endif
+ obj-$(CONFIG_QS_S5K4E1) += qs_s5k4e1.o qs_s5k4e1_reg.o
+ obj-$(CONFIG_VB6801) += vb6801.o
+ obj-$(CONFIG_IMX072) += imx072.o imx072_reg.o
+-obj-$(CONFIG_OV5640) += ov5640.o
++#ov5640 YUV sensor is now moved to sensors/ov5640_v4l2.c in sensors/Makefile
++#obj-$(CONFIG_OV5640) += ov5640.o
+ obj-$(CONFIG_MT9D112) += mt9d112.o mt9d112_reg.o
+ 
+ obj-$(CONFIG_MT9D113) += mt9d113.o mt9d113_reg.o
+diff --git a/drivers/media/video/msm/sensors/Makefile b/drivers/media/video/msm/sensors/Makefile
+index 25b1374..d3855a6 100644
+--- a/drivers/media/video/msm/sensors/Makefile
++++ b/drivers/media/video/msm/sensors/Makefile
+@@ -10,6 +10,7 @@ obj-$(CONFIG_IMX074) += imx074_v4l2.o
+ obj-$(CONFIG_S5K3L1YX) += s5k3l1yx.o
+ obj-$(CONFIG_IMX135) += imx135_v4l2.o
+ obj-$(CONFIG_OV2720) += ov2720.o
++obj-$(CONFIG_OV5640) += ov5640_v4l2.o
+ obj-$(CONFIG_MT9M114) += mt9m114_v4l2.o
+ obj-$(CONFIG_S5K4E1) += s5k4e1_v4l2.o
+ obj-$(CONFIG_MT9E013) += mt9e013_v4l2.o
+-- 
+1.7.9.5
+

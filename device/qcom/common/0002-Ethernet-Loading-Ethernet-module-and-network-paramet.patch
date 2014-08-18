@@ -1,0 +1,33 @@
+From cff66bbda84df47a079b7fa885745c74e2726ce5 Mon Sep 17 00:00:00 2001
+From: Arjun Prasad <arjun@inforcecomputing.com>
+Date: Tue, 3 Jun 2014 11:22:56 +0530
+Subject: [PATCH 2/4] Ethernet: Loading Ethernet module and network parameter
+ configuration
+
+Change-Id: I466e4632dcb03cb181c720637f036ac5db539834
+---
+ rootdir/etc/init.qcom.rc |    6 ++----
+ 1 file changed, 2 insertions(+), 4 deletions(-)
+
+diff --git a/rootdir/etc/init.qcom.rc b/rootdir/etc/init.qcom.rc
+index 56c1134..6474a26 100755
+--- a/rootdir/etc/init.qcom.rc
++++ b/rootdir/etc/init.qcom.rc
+@@ -701,12 +701,10 @@ on property:persist.sys.ssr.restart_level=3
+ 
+     #ethernet Config
+     on property:persist.eth.enable=1
+-	insmod /system/lib/modules/alx/alx.ko
+-	setprop net.dns1 8.8.8.8
+-	setprop net.dns2 8.8.4.4
++	insmod /system/lib/modules/atl1c.ko
+ 	setprop ro.kernel.android.ndns 2
+ 
+-    service ether /system/bin/sh /data/eth0.sh
++    service ether /system/bin/sh /persist/eth0.sh
+ 	class late_start
+ 	user root system
+ 	oneshot
+-- 
+1.7.9.5
+

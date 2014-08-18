@@ -1,0 +1,36 @@
+From 0121ba118f665c7a2a2fb8c74d620b38c8316257 Mon Sep 17 00:00:00 2001
+From: Arjun Prasad <arjun@inforcecomputing.com>
+Date: Mon, 6 Jan 2014 15:14:45 +0530
+Subject: [PATCH 23/35] wifi:Modifying the mmc interrupt handler to avoid
+ crash
+
+Change-Id: Iec5a029f83fc1a361b2a58bbe966e617e1621e33
+---
+ drivers/mmc/host/msm_sdcc.c |    4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/mmc/host/msm_sdcc.c b/drivers/mmc/host/msm_sdcc.c
+index 722cded..99ee9c2 100644
+--- a/drivers/mmc/host/msm_sdcc.c
++++ b/drivers/mmc/host/msm_sdcc.c
+@@ -1869,7 +1869,7 @@ msmsdcc_irq(int irq, void *dev_id)
+ 				 */
+ 				wake_lock(&host->sdio_wlock);
+ 			} else {
+-				if (!mmc->card || !mmc_card_sdio(mmc->card)) {
++				if (mmc->card && !mmc_card_sdio(mmc->card)) {
+ 					WARN(1, "%s: SDCC core interrupt received for non-SDIO cards when SDCC clocks are off\n",
+ 					     mmc_hostname(mmc));
+ 					ret = 1;
+@@ -1903,7 +1903,7 @@ msmsdcc_irq(int irq, void *dev_id)
+ #endif
+ 
+ 		if (status & MCI_SDIOINTROPE) {
+-			if (!mmc->card || mmc_card_sdio(mmc->card)) {
++			if (mmc->card && !mmc_card_sdio(mmc->card)) {
+ 				WARN(1, "%s: SDIO interrupt received for non-SDIO card\n",
+ 					mmc_hostname(mmc));
+ 				ret = 1;
+-- 
+1.7.9.5
+

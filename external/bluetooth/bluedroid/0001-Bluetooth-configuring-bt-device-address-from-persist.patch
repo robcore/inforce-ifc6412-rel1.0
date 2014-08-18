@@ -1,0 +1,77 @@
+From 3b4b9bfaefb3b584cc9d7524d8b3bcb63e76c244 Mon Sep 17 00:00:00 2001
+From: Arjun Prasad <arjun@inforcecomputing.com>
+Date: Mon, 9 Jun 2014 16:18:12 +0530
+Subject: [PATCH] Bluetooth:configuring bt device address from persist
+ partition
+
+Change-Id: Icd35de7f692eb87c13dc27665e90100ab0108275
+---
+ btif/src/btif_core.c |   15 ++++++++++++---
+ 1 file changed, 12 insertions(+), 3 deletions(-)
+
+diff --git a/btif/src/btif_core.c b/btif/src/btif_core.c
+index 1db7f2d..7d0ea82 100644
+--- a/btif/src/btif_core.c
++++ b/btif/src/btif_core.c
+@@ -67,6 +67,9 @@
+ #define BTE_DID_CONF_FILE "/etc/bluetooth/bt_did.conf"
+ #endif
+ 
++#define BDA_PERSIST 1
++#define BDA_FILE_PST "/persist/bt_mac.pst"
++
+ #define BTIF_TASK_STR        ((INT8 *) "BTIF")
+ 
+ /************************************************************************************
+@@ -384,16 +387,19 @@ static void btif_fetch_local_bdaddr(bt_bdaddr_t *local_addr)
+     char val[256];
+     uint8_t valid_bda = FALSE;
+     int val_size = 0;
++    static int addr_fd;
+     const uint8_t null_bdaddr[BD_ADDR_LEN] = {0,0,0,0,0,0};
+ 
++#ifndef BDA_PERSIST
+     /* Get local bdaddr storage path from property */
+     if (property_get(PROPERTY_BT_BDADDR_PATH, val, NULL))
+     {
+-        int addr_fd;
+-
+         BTIF_TRACE_DEBUG1("local bdaddr is stored in %s", val);
+ 
+         if ((addr_fd = open(val, O_RDONLY)) != -1)
++#else
++     if ((addr_fd = open(BDA_FILE_PST, O_RDONLY)) != -1)
++#endif
+         {
+             memset(val, 0, sizeof(val));
+             read(addr_fd, val, FACTORY_BT_BDADDR_STORAGE_LEN);
+@@ -409,8 +415,9 @@ static void btif_fetch_local_bdaddr(bt_bdaddr_t *local_addr)
+ 
+             close(addr_fd);
+         }
++#ifndef BDA_PERSIST
+     }
+-
++#endif
+     if(!valid_bda)
+     {
+         val_size = sizeof(val);
+@@ -588,6 +595,7 @@ void btif_enable_bluetooth_evt(tBTA_STATUS status, BD_ADDR local_bd)
+         bdstr_t buf;
+         bt_property_t prop;
+ 
++#ifndef BDA_PERSIST
+         /**
+          * The Controller's BDADDR does not match to the BTIF's initial BDADDR!
+          * This could be because the factory BDADDR was stored separatley in
+@@ -605,6 +613,7 @@ void btif_enable_bluetooth_evt(tBTA_STATUS status, BD_ADDR local_bd)
+         BTIF_TRACE_WARNING0("***********************************************");
+ 
+         bdcpy(btif_local_bd_addr.address, local_bd);
++#endif
+ 
+         //save the bd address to config file
+         bd2str(&btif_local_bd_addr, &buf);
+-- 
+1.7.9.5
+

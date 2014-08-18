@@ -1,0 +1,26 @@
+From 049de0ad2545cb063d6d0c310730d4a9359b9b93 Mon Sep 17 00:00:00 2001
+From: Suman Kumar <suman@inforcecomputing.com>
+Date: Mon, 6 Jan 2014 15:06:04 +0530
+Subject: [PATCH 22/35] wifi: def_config: add support for sdc4
+
+Change-Id: I297c305e10ebf4822842a0d88dc90f6e5efef5b9
+---
+ arch/arm/configs/msm8960_defconfig |    2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/arch/arm/configs/msm8960_defconfig b/arch/arm/configs/msm8960_defconfig
+index cd48059..5dc8902 100644
+--- a/arch/arm/configs/msm8960_defconfig
++++ b/arch/arm/configs/msm8960_defconfig
+@@ -486,6 +486,8 @@ CONFIG_MMC_MSM_SDC1_8_BIT_SUPPORT=y
+ # CONFIG_MMC_MSM_SDC2_SUPPORT is not set
+ CONFIG_MMC_MSM_SDC3_SUPPORT=y
+ CONFIG_MMC_MSM_SDC3_WP_SUPPORT=y
++CONFIG_MMC_MSM_SDC4_SUPPORT=y
++CONFIG_MMC_MSM_SDC4_8_BIT_SUPPORT=y
+ CONFIG_MMC_MSM_SPS_SUPPORT=y
+ CONFIG_LEDS_PM8XXX=y
+ CONFIG_LEDS_TRIGGERS=y
+-- 
+1.7.9.5
+

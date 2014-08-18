@@ -1,0 +1,787 @@
+From a18d478057a4512996f0f0a24fac6cacb908499e Mon Sep 17 00:00:00 2001
+From: Suman Kumar <suman@inforcecomputing.com>
+Date: Thu, 20 Feb 2014 17:45:13 +0530
+Subject: [PATCH 13/35] mipi dsi: truly: Board specific changes to enable
+ truly display
+
+Change-Id: Ic7ca560cabeb26562f1b15ed6825fc7303df8118
+---
+ arch/arm/mach-msm/board-8064-display.c   |  184 ++++++++++++++++
+ arch/arm/mach-msm/board-8064-pmic.c      |    5 +-
+ arch/arm/mach-msm/board-8064-regulator.c |  351 +++++++++++++++---------------
+ 3 files changed, 367 insertions(+), 173 deletions(-)
+
+diff --git a/arch/arm/mach-msm/board-8064-display.c b/arch/arm/mach-msm/board-8064-display.c
+index d051c41..fcf40e4 100644
+--- a/arch/arm/mach-msm/board-8064-display.c
++++ b/arch/arm/mach-msm/board-8064-display.c
+@@ -360,6 +360,189 @@ static struct platform_device wfd_device = {
+ #define HDMI_HPD_GPIO		72
+ 
+ static bool dsi_power_on;
++/* The case of truly display only call the below function */
++#ifdef CONFIG_FB_MSM_MIPI_PANEL_DETECT
++static int mipi_dsi_panel_power(int on)
++{
++	static struct regulator *reg_l23, *reg_l16,*reg_l8, *reg_ext_3p3v;
++	static int  gpio36, gpio26, mpp3, mpp2;
++	int rc;
++
++	pr_debug("%s: on=%d\n", __func__, on);
++
++	if (!dsi_power_on) {
++		reg_l23 = regulator_get(&msm_mipi_dsi1_device.dev,
++				"dsi1_vddio");
++		if (IS_ERR_OR_NULL(reg_l23)) {
++			pr_err("could not get 8921_l23, rc = %ld\n",
++				PTR_ERR(reg_l23));
++			return -ENODEV;
++		}
++
++		reg_l16 = regulator_get(&msm_mipi_dsi1_device.dev,
++				"dsi1_pll_vdda");
++		if (IS_ERR_OR_NULL(reg_l16)) {
++			pr_err("could not get 8921_l16, rc = %ld\n",
++				PTR_ERR(reg_l16));
++			return -ENODEV;
++		}
++
++		rc = regulator_set_voltage(reg_l16, 2800000, 2800000);
++		if (rc) {
++			pr_err("set_voltage l16 failed, rc=%d\n", rc);
++			return -EINVAL;
++		}
++
++		reg_l8 = regulator_get(&msm_mipi_dsi1_device.dev,
++						"dsi1_avdd");
++		if (IS_ERR(reg_l8)) {
++				pr_err("could not get 8921_l8, rc = %ld\n",
++						PTR_ERR(reg_l8));
++				return -ENODEV;
++		}
++		rc = regulator_set_voltage(reg_l8, 3300000, 3300000);
++		if (rc) {
++				pr_err("set_voltage l8 failed, rc=%d\n", rc);
++				return -EINVAL;
++		}
++
++		if (machine_is_apq8064_liquid()) {
++			reg_ext_3p3v = regulator_get(&msm_mipi_dsi1_device.dev,
++				"dsi1_vccs_3p3v");
++			if (IS_ERR_OR_NULL(reg_ext_3p3v)) {
++				pr_err("could not get reg_ext_3p3v, rc = %ld\n",
++					PTR_ERR(reg_ext_3p3v));
++				reg_ext_3p3v = NULL;
++				return -ENODEV;
++			}
++			mpp3 = PM8921_MPP_PM_TO_SYS(3);
++			rc = gpio_request(mpp3, "backlight_en");
++			if (rc) {
++				pr_err("request mpp3 failed, rc=%d\n", rc);
++				return -ENODEV;
++			}
++		}
++
++		gpio36 = PM8921_GPIO_PM_TO_SYS(36); /* lcd1_pwr_en_n */
++                rc = gpio_request(gpio36, "lcd1_pwr_en_n");
++                if (rc) {
++                        pr_err("request gpio 36 failed, rc=%d\n", rc);
++                        return -ENODEV;
++                }
++
++		gpio_set_value_cansleep(gpio36, 0);
++
++
++		mpp2 = PM8821_MPP_PM_TO_SYS(2);
++		rc = gpio_request(mpp2, "disp_rst_n");
++		if (rc) {
++			pr_err("request MPP 2 failed, rc=%d\n", rc);
++			return -ENODEV;
++		}
++
++		gpio26 = PM8921_GPIO_PM_TO_SYS(26);
++		rc = gpio_request(gpio26, "pwm_backlight_ctrl");
++		if (rc) {
++			pr_err("request gpio 26 failed, rc=%d\n", rc);
++			return -ENODEV;
++		}
++
++
++		dsi_power_on = true;
++	}
++
++	if (on) {
++
++             pr_err(" MIPI DSI: inside on board-8064-display.c \n");
++		rc = regulator_enable(reg_l23);
++		if (rc) {
++			pr_err("enable lvs7 failed, rc=%d\n", rc);
++			return -ENODEV;
++		}
++
++		rc = regulator_set_optimum_mode(reg_l8, 110000);
++		if (rc < 0) {
++			pr_err("set_optimum_mode l8 failed, rc=%d\n", rc);
++			return -EINVAL;
++		}
++		rc = regulator_enable(reg_l8);
++		if (rc) {
++			pr_err("enable l8 failed, rc=%d\n", rc);
++			return -ENODEV;
++		}
++
++		rc = regulator_set_optimum_mode(reg_l16, 100000);
++		if (rc < 0) {
++			pr_err("set_optimum_mode l16 failed, rc=%d\n", rc);
++			return -EINVAL;
++		}
++		rc = regulator_enable(reg_l16);
++		if (rc) {
++			pr_err("enable l16 failed, rc=%d\n", rc);
++			return -ENODEV;
++		}
++
++		if (machine_is_apq8064_liquid()) {
++			rc = regulator_enable(reg_ext_3p3v);
++			if (rc) {
++				pr_err("enable reg_ext_3p3v failed, rc=%d\n",
++					rc);
++				return -ENODEV;
++			}
++			gpio_set_value_cansleep(mpp3, 1);
++		}
++		gpio_set_value_cansleep(gpio26, 1);
++
++		gpio_set_value_cansleep(mpp2, 1);
++		mdelay(1);
++		gpio_set_value_cansleep(mpp2, 0);
++		usleep(50);
++		gpio_set_value_cansleep(mpp2, 1);
++
++		if (socinfo_get_pmic_model() == PMIC_MODEL_PM8917)
++			gpio_set_value_cansleep(gpio26, 1);
++	} else {
++
++		pr_err(" MIPI DSI inside else board-8064-display.c \n");
++		if (socinfo_get_pmic_model() == PMIC_MODEL_PM8917)
++			gpio_set_value_cansleep(gpio26, 0);
++		gpio_set_value_cansleep(mpp2, 0);
++
++		if (machine_is_apq8064_liquid()) {
++			gpio_set_value_cansleep(mpp3, 0);
++
++			rc = regulator_disable(reg_ext_3p3v);
++			if (rc) {
++				pr_err("disable reg_ext_3p3v failed, rc=%d\n",
++					rc);
++				return -ENODEV;
++			}
++		}
++
++		rc = regulator_disable(reg_l8);
++		if (rc) {
++			pr_err("disable reg_l8 failed, rc=%d\n", rc);
++			return -ENODEV;
++		}
++
++		rc = regulator_disable(reg_l23);
++		if (rc) {
++			pr_err("disable reg_lv23 failed, rc=%d\n", rc);
++			return -ENODEV;
++		}
++
++		rc = regulator_disable(reg_l16);
++		if (rc) {
++			pr_err("disable reg_l16 failed, rc=%d\n", rc);
++			return -ENODEV;
++		}
++
++	}
++
++	return 0;
++}
++/* This is the default code used for LVDS lvds_chimei_wxga DISPLAY */
++#else
+ static int mipi_dsi_panel_power(int on)
+ {
+ 	static struct regulator *reg_lvs7, *reg_l2, *reg_l11, *reg_ext_3p3v;
+@@ -525,6 +708,7 @@ static int mipi_dsi_panel_power(int on)
+ 
+ 	return 0;
+ }
++#endif
+ 
+ static struct mipi_dsi_platform_data mipi_dsi_pdata = {
+ 	.dsi_power_save = mipi_dsi_panel_power,
+diff --git a/arch/arm/mach-msm/board-8064-pmic.c b/arch/arm/mach-msm/board-8064-pmic.c
+index 2de2f18..ec2bd33 100644
+--- a/arch/arm/mach-msm/board-8064-pmic.c
++++ b/arch/arm/mach-msm/board-8064-pmic.c
+@@ -116,7 +116,7 @@ struct pm8xxx_mpp_init {
+ static struct pm8xxx_gpio_init pm8921_gpios[] __initdata = {
+ 	PM8921_GPIO_OUTPUT(14, 1, HIGH),	/* HDMI Mux Selector */
+ 	PM8921_GPIO_OUTPUT_BUFCONF(25, 0, LOW, CMOS), /* DISP_RESET_N */
+-	PM8921_GPIO_OUTPUT_FUNC(26, 0, PM_GPIO_FUNC_2), /* Bl: Off, PWM mode */
++	PM8921_GPIO_OUTPUT(26, 0, LOW),	/* Bl: Off, PWM mode */
+ 	PM8921_GPIO_OUTPUT_VIN(30, 1, PM_GPIO_VIN_VPH), /* SMB349 susp line */
+ 	PM8921_GPIO_OUTPUT_BUFCONF(36, 1, LOW, OPEN_DRAIN),
+ 	PM8921_GPIO_OUTPUT_FUNC(44, 0, PM_GPIO_FUNC_2),
+@@ -191,7 +191,8 @@ static struct pm8xxx_mpp_init pm8xxx_mpps[] __initdata = {
+ 	/*MPP9 is used to detect docking station connection/removal on Liquid*/
+ 	PM8921_MPP_INIT(9, D_INPUT, PM8921_MPP_DIG_LEVEL_S4, DIN_TO_INT),
+ 	/* PCIE_RESET_N */
+-	PM8921_MPP_INIT(1, D_OUTPUT, PM8921_MPP_DIG_LEVEL_VPH, DOUT_CTRL_HIGH),
++	/* DISP_RST on Inforce IFC6412 is PMIC_MPP_8821_2 */
++	PM8821_MPP_INIT(2, D_OUTPUT, PM8921_MPP_DIG_LEVEL_S4, DOUT_CTRL_LOW),
+ };
+ 
+ static struct pm8xxx_gpio_init pm8921_sglte2_gpios[] __initdata = {
+diff --git a/arch/arm/mach-msm/board-8064-regulator.c b/arch/arm/mach-msm/board-8064-regulator.c
+index 5a8cfdb..e8932b9 100644
+--- a/arch/arm/mach-msm/board-8064-regulator.c
++++ b/arch/arm/mach-msm/board-8064-regulator.c
+@@ -32,8 +32,6 @@ VREG_CONSUMERS(L2) = {
+ 	REGULATOR_SUPPLY("mipi_csi_vdd",	"msm_csid.1"),
+ 	REGULATOR_SUPPLY("mipi_csi_vdd",	"msm_csid.2"),
+ 	REGULATOR_SUPPLY("lvds_pll_vdda",	"lvds.0"),
+-	REGULATOR_SUPPLY("dsi1_pll_vdda",	"mipi_dsi.1"),
+-	REGULATOR_SUPPLY("dsi_pll_vdda",	"mdp.0"),
+ };
+ VREG_CONSUMERS(L3) = {
+ 	REGULATOR_SUPPLY("8921_l3",		NULL),
+@@ -58,6 +56,7 @@ VREG_CONSUMERS(L7) = {
+ 	REGULATOR_SUPPLY("8921_l7",		NULL),
+ 	REGULATOR_SUPPLY("sdc_vdd_io",		"msm_sdcc.3"),
+ };
++
+ VREG_CONSUMERS(L8) = {
+ 	REGULATOR_SUPPLY("8921_l8",		NULL),
+ 	REGULATOR_SUPPLY("cam_vana",		"4-001a"),
+@@ -66,7 +65,10 @@ VREG_CONSUMERS(L8) = {
+ 	REGULATOR_SUPPLY("cam_vana",		"4-006c"),
+ 	REGULATOR_SUPPLY("cam_vana",		"4-0034"),
+ 	REGULATOR_SUPPLY("cam_vana",		"4-0020"),
++	REGULATOR_SUPPLY("dsi1_avdd",           "mipi_dsi.1"),
++	REGULATOR_SUPPLY("dsi1_vddio",          "mipi_dsi.1"),
+ };
++
+ VREG_CONSUMERS(L9) = {
+ 	REGULATOR_SUPPLY("8921_l9",		NULL),
+ 	REGULATOR_SUPPLY("vdd",			"3-0024"),
+@@ -77,7 +79,6 @@ VREG_CONSUMERS(L10) = {
+ };
+ VREG_CONSUMERS(L11) = {
+ 	REGULATOR_SUPPLY("8921_l11",		NULL),
+-	REGULATOR_SUPPLY("dsi1_avdd",		"mipi_dsi.1"),
+ };
+ VREG_CONSUMERS(L12) = {
+ 	REGULATOR_SUPPLY("cam_vdig",		"4-001a"),
+@@ -86,6 +87,7 @@ VREG_CONSUMERS(L12) = {
+ 	REGULATOR_SUPPLY("cam_vdig",		"4-006c"),
+ 	REGULATOR_SUPPLY("cam_vdig",		"4-0034"),
+ 	REGULATOR_SUPPLY("cam_vdig",		"4-0020"),
++	REGULATOR_SUPPLY("dsi_pll_vdda",        "mdp.0"),
+ 	REGULATOR_SUPPLY("8921_l12",		NULL),
+ };
+ VREG_CONSUMERS(L13) = {
+@@ -98,6 +100,7 @@ VREG_CONSUMERS(L14) = {
+ VREG_CONSUMERS(L15) = {
+ 	REGULATOR_SUPPLY("8921_l15",		NULL),
+ };
++
+ VREG_CONSUMERS(L16) = {
+ 	REGULATOR_SUPPLY("8921_l16",		NULL),
+ 	REGULATOR_SUPPLY("cam_vaf",		"4-001a"),
+@@ -106,6 +109,9 @@ VREG_CONSUMERS(L16) = {
+ 	REGULATOR_SUPPLY("cam_vaf",		"4-006c"),
+ 	REGULATOR_SUPPLY("cam_vaf",		"4-0034"),
+ 	REGULATOR_SUPPLY("cam_vaf",		"4-0020"),
++	REGULATOR_SUPPLY("dsi1_pll_vdda",       "mipi_dsi.1"),
++	REGULATOR_SUPPLY("HRD_VDDD_CDC_D",      "tabla2x-slim"),
++	REGULATOR_SUPPLY("HRD_CDC_VDDA_A_1P2V", "tabla2x-slim"),
+ };
+ VREG_CONSUMERS(L17) = {
+ 	REGULATOR_SUPPLY("8921_l17",		NULL),
+@@ -225,7 +231,6 @@ VREG_CONSUMERS(LVS7) = {
+ 	REGULATOR_SUPPLY("8921_lvs7",		NULL),
+ 	REGULATOR_SUPPLY("pll_vdd",		"pil_riva"),
+ 	REGULATOR_SUPPLY("lvds_vdda",		"lvds.0"),
+-	REGULATOR_SUPPLY("dsi1_vddio",		"mipi_dsi.1"),
+ 	REGULATOR_SUPPLY("dsi_pll_vddio",	"mdp.0"),
+ 	REGULATOR_SUPPLY("hdmi_vdda",		"hdmi_msm.0"),
+ };
+@@ -327,34 +332,34 @@ VREG_CONSUMERS(BOOST) = {
+ };
+ 
+ #define PM8XXX_VREG_INIT(_id, _name, _min_uV, _max_uV, _modes, _ops, \
+-			 _apply_uV, _pull_down, _always_on, _supply_regulator, \
+-			 _system_uA, _enable_time, _reg_id) \
+-	{ \
+-		.init_data = { \
+-			.constraints = { \
+-				.valid_modes_mask	= _modes, \
+-				.valid_ops_mask		= _ops, \
+-				.min_uV			= _min_uV, \
+-				.max_uV			= _max_uV, \
+-				.input_uV		= _max_uV, \
+-				.apply_uV		= _apply_uV, \
+-				.always_on		= _always_on, \
+-				.name			= _name, \
+-			}, \
+-			.num_consumer_supplies	= \
+-					ARRAY_SIZE(vreg_consumers_##_id), \
+-			.consumer_supplies	= vreg_consumers_##_id, \
+-			.supply_regulator	= _supply_regulator, \
++		_apply_uV, _pull_down, _always_on, _supply_regulator, \
++		_system_uA, _enable_time, _reg_id) \
++{ \
++	.init_data = { \
++		.constraints = { \
++			.valid_modes_mask	= _modes, \
++			.valid_ops_mask		= _ops, \
++			.min_uV			= _min_uV, \
++			.max_uV			= _max_uV, \
++			.input_uV		= _max_uV, \
++			.apply_uV		= _apply_uV, \
++			.always_on		= _always_on, \
++			.name			= _name, \
+ 		}, \
+-		.id			= _reg_id, \
+-		.pull_down_enable	= _pull_down, \
+-		.system_uA		= _system_uA, \
+-		.enable_time		= _enable_time, \
+-	}
++		.num_consumer_supplies	= \
++		ARRAY_SIZE(vreg_consumers_##_id), \
++		.consumer_supplies	= vreg_consumers_##_id, \
++		.supply_regulator	= _supply_regulator, \
++	}, \
++	.id			= _reg_id, \
++	.pull_down_enable	= _pull_down, \
++	.system_uA		= _system_uA, \
++	.enable_time		= _enable_time, \
++}
+ 
+ #define PM8XXX_LDO(_id, _name, _always_on, _pull_down, _min_uV, _max_uV, \
+ 		_enable_time, _supply_regulator, _system_uA, _reg_id) \
+-	PM8XXX_VREG_INIT(_id, _name, _min_uV, _max_uV, REGULATOR_MODE_NORMAL \
++PM8XXX_VREG_INIT(_id, _name, _min_uV, _max_uV, REGULATOR_MODE_NORMAL \
+ 		| REGULATOR_MODE_IDLE, REGULATOR_CHANGE_VOLTAGE | \
+ 		REGULATOR_CHANGE_STATUS | REGULATOR_CHANGE_MODE | \
+ 		REGULATOR_CHANGE_DRMS, 0, _pull_down, _always_on, \
+@@ -362,7 +367,7 @@ VREG_CONSUMERS(BOOST) = {
+ 
+ #define PM8XXX_NLDO1200(_id, _name, _always_on, _pull_down, _min_uV, \
+ 		_max_uV, _enable_time, _supply_regulator, _system_uA, _reg_id) \
+-	PM8XXX_VREG_INIT(_id, _name, _min_uV, _max_uV, REGULATOR_MODE_NORMAL \
++PM8XXX_VREG_INIT(_id, _name, _min_uV, _max_uV, REGULATOR_MODE_NORMAL \
+ 		| REGULATOR_MODE_IDLE, REGULATOR_CHANGE_VOLTAGE | \
+ 		REGULATOR_CHANGE_STATUS | REGULATOR_CHANGE_MODE | \
+ 		REGULATOR_CHANGE_DRMS, 0, _pull_down, _always_on, \
+@@ -370,7 +375,7 @@ VREG_CONSUMERS(BOOST) = {
+ 
+ #define PM8XXX_SMPS(_id, _name, _always_on, _pull_down, _min_uV, _max_uV, \
+ 		_enable_time, _supply_regulator, _system_uA, _reg_id) \
+-	PM8XXX_VREG_INIT(_id, _name, _min_uV, _max_uV, REGULATOR_MODE_NORMAL \
++PM8XXX_VREG_INIT(_id, _name, _min_uV, _max_uV, REGULATOR_MODE_NORMAL \
+ 		| REGULATOR_MODE_IDLE, REGULATOR_CHANGE_VOLTAGE | \
+ 		REGULATOR_CHANGE_STATUS | REGULATOR_CHANGE_MODE | \
+ 		REGULATOR_CHANGE_DRMS, 0, _pull_down, _always_on, \
+@@ -409,148 +414,150 @@ VREG_CONSUMERS(BOOST) = {
+ 
+ /* Pin control initialization */
+ #define PM8XXX_PC(_id, _name, _always_on, _pin_fn, _pin_ctrl, \
+-		  _supply_regulator, _reg_id) \
+-	{ \
+-		.init_data = { \
+-			.constraints = { \
+-				.valid_ops_mask	= REGULATOR_CHANGE_STATUS, \
+-				.always_on	= _always_on, \
+-				.name		= _name, \
+-			}, \
+-			.num_consumer_supplies	= \
+-					ARRAY_SIZE(vreg_consumers_##_id##_PC), \
+-			.consumer_supplies	= vreg_consumers_##_id##_PC, \
+-			.supply_regulator  = _supply_regulator, \
++		_supply_regulator, _reg_id) \
++{ \
++	.init_data = { \
++		.constraints = { \
++			.valid_ops_mask	= REGULATOR_CHANGE_STATUS, \
++			.always_on	= _always_on, \
++			.name		= _name, \
+ 		}, \
+-		.id		= _reg_id, \
+-		.pin_fn		= PM8XXX_VREG_PIN_FN_##_pin_fn, \
+-		.pin_ctrl	= _pin_ctrl, \
+-	}
++		.num_consumer_supplies	= \
++		ARRAY_SIZE(vreg_consumers_##_id##_PC), \
++		.consumer_supplies	= vreg_consumers_##_id##_PC, \
++		.supply_regulator  = _supply_regulator, \
++	}, \
++	.id		= _reg_id, \
++	.pin_fn		= PM8XXX_VREG_PIN_FN_##_pin_fn, \
++	.pin_ctrl	= _pin_ctrl, \
++}
+ 
+ #define GPIO_VREG(_id, _reg_name, _gpio_label, _gpio, _supply_regulator) \
+-	[GPIO_VREG_ID_##_id] = { \
+-		.init_data = { \
+-			.constraints = { \
+-				.valid_ops_mask	= REGULATOR_CHANGE_STATUS, \
+-			}, \
+-			.num_consumer_supplies	= \
+-					ARRAY_SIZE(vreg_consumers_##_id), \
+-			.consumer_supplies	= vreg_consumers_##_id, \
+-			.supply_regulator	= _supply_regulator, \
+-		}, \
+-		.regulator_name = _reg_name, \
+-		.gpio_label	= _gpio_label, \
+-		.gpio		= _gpio, \
+-	}
+-
+-#define SAW_VREG_INIT(_id, _name, _min_uV, _max_uV) \
+-	{ \
++[GPIO_VREG_ID_##_id] = { \
++	.init_data = { \
+ 		.constraints = { \
+-			.name		= _name, \
+-			.valid_ops_mask	= REGULATOR_CHANGE_VOLTAGE, \
+-			.min_uV		= _min_uV, \
+-			.max_uV		= _max_uV, \
++			.valid_ops_mask	= REGULATOR_CHANGE_STATUS, \
+ 		}, \
+-		.num_consumer_supplies	= ARRAY_SIZE(vreg_consumers_##_id), \
++		.num_consumer_supplies	= \
++		ARRAY_SIZE(vreg_consumers_##_id), \
+ 		.consumer_supplies	= vreg_consumers_##_id, \
+-	}
++	.supply_regulator	= _supply_regulator, \
++	}, \
++	.regulator_name = _reg_name, \
++	.gpio_label	= _gpio_label, \
++	.gpio		= _gpio, \
++	.active_low	= _active_low, \
++}
++
++#define SAW_VREG_INIT(_id, _name, _min_uV, _max_uV) \
++{ \
++	.constraints = { \
++		.name		= _name, \
++		.valid_ops_mask	= REGULATOR_CHANGE_VOLTAGE, \
++		.min_uV		= _min_uV, \
++		.max_uV		= _max_uV, \
++	}, \
++	.num_consumer_supplies	= ARRAY_SIZE(vreg_consumers_##_id), \
++	.consumer_supplies	= vreg_consumers_##_id, \
++}
+ 
+ #define RPM_INIT(_id, _min_uV, _max_uV, _modes, _ops, _apply_uV, _default_uV, \
+-		 _peak_uA, _avg_uA, _pull_down, _pin_ctrl, _freq, _pin_fn, \
+-		 _force_mode, _sleep_set_force_mode, _power_mode, _state, \
+-		 _sleep_selectable, _always_on, _supply_regulator, _system_uA) \
+-	{ \
+-		.init_data = { \
+-			.constraints = { \
+-				.valid_modes_mask	= _modes, \
+-				.valid_ops_mask		= _ops, \
+-				.min_uV			= _min_uV, \
+-				.max_uV			= _max_uV, \
+-				.input_uV		= _min_uV, \
+-				.apply_uV		= _apply_uV, \
+-				.always_on		= _always_on, \
+-			}, \
+-			.num_consumer_supplies	= \
+-					ARRAY_SIZE(vreg_consumers_##_id), \
+-			.consumer_supplies	= vreg_consumers_##_id, \
+-			.supply_regulator	= _supply_regulator, \
++		_peak_uA, _avg_uA, _pull_down, _pin_ctrl, _freq, _pin_fn, \
++		_force_mode, _sleep_set_force_mode, _power_mode, _state, \
++		_sleep_selectable, _always_on, _supply_regulator, _system_uA) \
++{ \
++	.init_data = { \
++		.constraints = { \
++			.valid_modes_mask	= _modes, \
++			.valid_ops_mask		= _ops, \
++			.min_uV			= _min_uV, \
++			.max_uV			= _max_uV, \
++			.input_uV		= _min_uV, \
++			.apply_uV		= _apply_uV, \
++			.always_on		= _always_on, \
++
+ 		}, \
+-		.id			= RPM_VREG_ID_PM8921_##_id, \
+-		.default_uV		= _default_uV, \
+-		.peak_uA		= _peak_uA, \
+-		.avg_uA			= _avg_uA, \
+-		.pull_down_enable	= _pull_down, \
+-		.pin_ctrl		= _pin_ctrl, \
+-		.freq			= RPM_VREG_FREQ_##_freq, \
+-		.pin_fn			= _pin_fn, \
+-		.force_mode		= _force_mode, \
+-		.sleep_set_force_mode	= _sleep_set_force_mode, \
+-		.power_mode		= _power_mode, \
+-		.state			= _state, \
+-		.sleep_selectable	= _sleep_selectable, \
+-		.system_uA		= _system_uA, \
+-	}
++		.num_consumer_supplies	= \
++		ARRAY_SIZE(vreg_consumers_##_id), \
++		.consumer_supplies	= vreg_consumers_##_id, \
++		.supply_regulator	= _supply_regulator, \
++	}, \
++	.id			= RPM_VREG_ID_PM8921_##_id, \
++	.default_uV		= _default_uV, \
++	.peak_uA		= _peak_uA, \
++	.avg_uA			= _avg_uA, \
++	.pull_down_enable	= _pull_down, \
++	.pin_ctrl		= _pin_ctrl, \
++	.freq			= RPM_VREG_FREQ_##_freq, \
++	.pin_fn			= _pin_fn, \
++	.force_mode		= _force_mode, \
++	.sleep_set_force_mode	= _sleep_set_force_mode, \
++	.power_mode		= _power_mode, \
++	.state			= _state, \
++	.sleep_selectable	= _sleep_selectable, \
++	.system_uA		= _system_uA, \
++}
+ 
+ #define RPM_LDO(_id, _always_on, _pd, _sleep_selectable, _min_uV, _max_uV, \
+ 		_supply_regulator, _system_uA, _init_peak_uA) \
+ 	RPM_INIT(_id, _min_uV, _max_uV, REGULATOR_MODE_NORMAL \
+-		 | REGULATOR_MODE_IDLE, REGULATOR_CHANGE_VOLTAGE \
+-		 | REGULATOR_CHANGE_STATUS | REGULATOR_CHANGE_MODE \
+-		 | REGULATOR_CHANGE_DRMS, 0, _max_uV, _init_peak_uA, 0, _pd, \
+-		 RPM_VREG_PIN_CTRL_NONE, NONE, RPM_VREG_PIN_FN_8960_NONE, \
+-		 RPM_VREG_FORCE_MODE_8960_NONE, \
+-		 RPM_VREG_FORCE_MODE_8960_NONE, RPM_VREG_POWER_MODE_8960_PWM, \
+-		 RPM_VREG_STATE_OFF, _sleep_selectable, _always_on, \
+-		 _supply_regulator, _system_uA)
++		| REGULATOR_MODE_IDLE, REGULATOR_CHANGE_VOLTAGE \
++		| REGULATOR_CHANGE_STATUS | REGULATOR_CHANGE_MODE \
++		| REGULATOR_CHANGE_DRMS, 0, _max_uV, _init_peak_uA, 0, _pd, \
++		RPM_VREG_PIN_CTRL_NONE, NONE, RPM_VREG_PIN_FN_8960_NONE, \
++		RPM_VREG_FORCE_MODE_8960_NONE, \
++		RPM_VREG_FORCE_MODE_8960_NONE, RPM_VREG_POWER_MODE_8960_PWM, \
++		RPM_VREG_STATE_OFF, _sleep_selectable, _always_on, \
++		_supply_regulator, _system_uA)
+ 
+ #define RPM_SMPS(_id, _always_on, _pd, _sleep_selectable, _min_uV, _max_uV, \
+-		 _supply_regulator, _system_uA, _freq, _force_mode, \
+-		 _sleep_set_force_mode) \
+-	RPM_INIT(_id, _min_uV, _max_uV, REGULATOR_MODE_NORMAL \
+-		 | REGULATOR_MODE_IDLE, REGULATOR_CHANGE_VOLTAGE \
+-		 | REGULATOR_CHANGE_STATUS | REGULATOR_CHANGE_MODE \
+-		 | REGULATOR_CHANGE_DRMS, 0, _max_uV, _system_uA, 0, _pd, \
+-		 RPM_VREG_PIN_CTRL_NONE, _freq, RPM_VREG_PIN_FN_8960_NONE, \
+-		 RPM_VREG_FORCE_MODE_8960_##_force_mode, \
+-		 RPM_VREG_FORCE_MODE_8960_##_sleep_set_force_mode, \
+-		 RPM_VREG_POWER_MODE_8960_PWM, RPM_VREG_STATE_OFF, \
+-		 _sleep_selectable, _always_on, _supply_regulator, _system_uA)
++		_supply_regulator, _system_uA, _freq, _force_mode, \
++		_sleep_set_force_mode) \
++RPM_INIT(_id, _min_uV, _max_uV, REGULATOR_MODE_NORMAL \
++		| REGULATOR_MODE_IDLE, REGULATOR_CHANGE_VOLTAGE \
++		| REGULATOR_CHANGE_STATUS | REGULATOR_CHANGE_MODE \
++		| REGULATOR_CHANGE_DRMS, 0, _max_uV, _system_uA, 0, _pd, \
++		RPM_VREG_PIN_CTRL_NONE, _freq, RPM_VREG_PIN_FN_8960_NONE, \
++		RPM_VREG_FORCE_MODE_8960_##_force_mode, \
++		RPM_VREG_FORCE_MODE_8960_##_sleep_set_force_mode, \
++		RPM_VREG_POWER_MODE_8960_PWM, RPM_VREG_STATE_OFF, \
++		_sleep_selectable, _always_on, _supply_regulator, _system_uA)
+ 
+ #define RPM_VS(_id, _always_on, _pd, _sleep_selectable, _supply_regulator) \
+ 	RPM_INIT(_id, 0, 0, 0, REGULATOR_CHANGE_STATUS, 0, 0, 1000, 1000, _pd, \
+ 		 RPM_VREG_PIN_CTRL_NONE, NONE, RPM_VREG_PIN_FN_8960_NONE, \
+-		 RPM_VREG_FORCE_MODE_8960_NONE, \
+-		 RPM_VREG_FORCE_MODE_8960_NONE, RPM_VREG_POWER_MODE_8960_PWM, \
+-		 RPM_VREG_STATE_OFF, _sleep_selectable, _always_on, \
+-		 _supply_regulator, 0)
++			RPM_VREG_FORCE_MODE_8960_NONE, \
++			RPM_VREG_FORCE_MODE_8960_NONE, RPM_VREG_POWER_MODE_8960_PWM, \
++			RPM_VREG_STATE_OFF, _sleep_selectable, _always_on, \
++			_supply_regulator, 0)
+ 
+ #define RPM_NCP(_id, _always_on, _sleep_selectable, _min_uV, _max_uV, \
+ 		_supply_regulator, _freq) \
+ 	RPM_INIT(_id, _min_uV, _max_uV, 0, REGULATOR_CHANGE_VOLTAGE \
+-		 | REGULATOR_CHANGE_STATUS, 0, _max_uV, 1000, 1000, 0, \
+-		 RPM_VREG_PIN_CTRL_NONE, _freq, RPM_VREG_PIN_FN_8960_NONE, \
+-		 RPM_VREG_FORCE_MODE_8960_NONE, \
+-		 RPM_VREG_FORCE_MODE_8960_NONE, RPM_VREG_POWER_MODE_8960_PWM, \
+-		 RPM_VREG_STATE_OFF, _sleep_selectable, _always_on, \
+-		 _supply_regulator, 0)
++		| REGULATOR_CHANGE_STATUS, 0, _max_uV, 1000, 1000, 0, \
++		RPM_VREG_PIN_CTRL_NONE, _freq, RPM_VREG_PIN_FN_8960_NONE, \
++		RPM_VREG_FORCE_MODE_8960_NONE, \
++		RPM_VREG_FORCE_MODE_8960_NONE, RPM_VREG_POWER_MODE_8960_PWM, \
++		RPM_VREG_STATE_OFF, _sleep_selectable, _always_on, \
++		_supply_regulator, 0)
+ 
+ /* Pin control initialization */
+ #define RPM_PC_INIT(_id, _always_on, _pin_fn, _pin_ctrl, _supply_regulator) \
+-	{ \
+-		.init_data = { \
+-			.constraints = { \
+-				.valid_ops_mask	= REGULATOR_CHANGE_STATUS, \
+-				.always_on	= _always_on, \
+-			}, \
+-			.num_consumer_supplies	= \
+-					ARRAY_SIZE(vreg_consumers_##_id##_PC), \
+-			.consumer_supplies	= vreg_consumers_##_id##_PC, \
+-			.supply_regulator	= _supply_regulator, \
++{ \
++	.init_data = { \
++		.constraints = { \
++			.valid_ops_mask	= REGULATOR_CHANGE_STATUS, \
++			.always_on	= _always_on, \
+ 		}, \
+-		.id	  = RPM_VREG_ID_PM8921_##_id##_PC, \
+-		.pin_fn	  = RPM_VREG_PIN_FN_8960_##_pin_fn, \
+-		.pin_ctrl = _pin_ctrl, \
+-	}
++		.num_consumer_supplies	= \
++		ARRAY_SIZE(vreg_consumers_##_id##_PC), \
++		.consumer_supplies	= vreg_consumers_##_id##_PC, \
++		.supply_regulator	= _supply_regulator, \
++	}, \
++	.id	  = RPM_VREG_ID_PM8921_##_id##_PC, \
++	.pin_fn	  = RPM_VREG_PIN_FN_8960_##_pin_fn, \
++	.pin_ctrl = _pin_ctrl, \
++}
+ 
+ /* GPIO regulator constraints */
+ struct gpio_regulator_platform_data
+@@ -558,9 +565,9 @@ apq8064_gpio_regulator_pdata[] __devinitdata = {
+ 	/*        ID      vreg_name gpio_label   gpio                  supply */
+ 	GPIO_VREG(EXT_5V, "ext_5v", "ext_5v_en", PM8921_MPP_PM_TO_SYS(7), NULL),
+ 	GPIO_VREG(EXT_3P3V, "ext_3p3v", "ext_3p3v_en",
+-		  APQ8064_EXT_3P3V_REG_EN_GPIO, NULL),
++		  APQ8064_EXT_3P3V_REG_EN_GPIO, NULL, 0),
+ 	GPIO_VREG(EXT_TS_SW, "ext_ts_sw", "ext_ts_sw_en",
+-		  PM8921_GPIO_PM_TO_SYS(23), "ext_3p3v"),
++		  PM8921_GPIO_PM_TO_SYS(23), "ext_3p3v", 0),
+ 	GPIO_VREG(EXT_MPP8, "ext_mpp8", "ext_mpp8_en",
+ 			PM8921_MPP_PM_TO_SYS(8), NULL),
+ };
+@@ -570,10 +577,10 @@ mpq8064_gpio_regulator_pdata[] __devinitdata = {
+ 	GPIO_VREG(AVC_1P2V, "avc_1p2v", "avc_1p2v_en", SX150X_GPIO(4, 2), NULL),
+ 	GPIO_VREG(AVC_1P8V, "avc_1p8v", "avc_1p8v_en", SX150X_GPIO(4, 4), NULL),
+ 	GPIO_VREG(AVC_2P2V, "avc_2p2v", "avc_2p2v_en",
+-						 SX150X_GPIO(4, 14), NULL),
++						 SX150X_GPIO(4, 14), NULL, 0),
+ 	GPIO_VREG(AVC_5V, "avc_5v", "avc_5v_en", SX150X_GPIO(4, 3), NULL),
+ 	GPIO_VREG(AVC_3P3V, "avc_3p3v", "avc_3p3v_en",
+-					SX150X_GPIO(4, 15), "avc_5v"),
++					SX150X_GPIO(4, 15), "avc_5v", 0),
+ };
+ 
+ /* SAW regulator constraints */
+@@ -597,7 +604,7 @@ msm8064_pm8921_regulator_pdata[] __devinitdata = {
+ 	 *	system_uA reg_ID
+ 	 */
+ 	PM8XXX_NLDO1200(L26, "8921_l26", 0, 1, 375000, 1050000, 200, "8921_s7",
+-		0, 1),
++			0, 1),
+ 
+ 	/*           ID        name     always_on pd       en_t supply reg_ID */
+ 	PM8XXX_VS300(USB_OTG,  "8921_usb_otg",  0, 0,         0, "ext_5v", 2),
+@@ -612,21 +619,21 @@ msm8064_pm8917_regulator_pdata[] __devinitdata = {
+ 	 *	system_uA reg_ID
+ 	 */
+ 	PM8XXX_NLDO1200(L26, "8921_l26", 0, 1, 375000, 1050000, 200, "8921_s7",
+-		0, 1),
++			0, 1),
+ 	PM8XXX_LDO(L30,      "8917_l30", 0, 1, 1800000, 1800000, 200, NULL,
+-		0, 2),
++			0, 2),
+ 	PM8XXX_LDO(L31,      "8917_l31", 0, 1, 1800000, 1800000, 200, NULL,
+-		0, 3),
++			0, 3),
+ 	PM8XXX_LDO(L32,      "8917_l32", 0, 1, 2800000, 2800000, 200, NULL,
+-		0, 4),
++			0, 4),
+ 	PM8XXX_LDO(L33,      "8917_l33", 0, 1, 2800000, 2800000, 200, NULL,
+-		0, 5),
++			0, 5),
+ 	PM8XXX_LDO(L34,      "8917_l34", 0, 1, 1800000, 1800000, 200, NULL,
+-		0, 6),
++			0, 6),
+ 	PM8XXX_LDO(L35,      "8917_l35", 0, 1, 3000000, 3000000, 200, NULL,
+-		0, 7),
++			0, 7),
+ 	PM8XXX_LDO(L36,      "8917_l36", 0, 1, 1800000, 1800000, 200, NULL,
+-		0, 8),
++			0, 8),
+ 
+ 	/*
+ 	 *           ID     name   always_on  min_uV   max_uV en_t supply reg_ID
+@@ -649,13 +656,13 @@ apq8064_rpm_regulator_init_data[] __devinitdata = {
+ 
+ 	/*	ID a_on pd ss min_uV   max_uV   supply    sys_uA init_ip */
+ 	RPM_LDO(L1,  1, 1, 0, 1100000, 1100000, "8921_s4",     0,  1000),
+-	RPM_LDO(L2,  0, 1, 0, 1200000, 1200000, "8921_s4",     0,     0),
++	RPM_LDO(L2,  1, 1, 0, 1200000, 1200000, "8921_s4",     0,     0),
+ 	RPM_LDO(L3,  0, 1, 0, 3075000, 3300000, NULL,          0,     0),
+ 	RPM_LDO(L4,  1, 1, 0, 1800000, 1800000, NULL,          0, 10000),
+ 	RPM_LDO(L5,  0, 1, 0, 2950000, 2950000, NULL,          0,     0),
+ 	RPM_LDO(L6,  0, 1, 0, 2950000, 2950000, NULL,          0,     0),
+ 	RPM_LDO(L7,  0, 1, 0, 1850000, 2950000, NULL,          0,     0),
+-	RPM_LDO(L8,  0, 1, 0, 2800000, 2800000, NULL,          0,     0),
++	RPM_LDO(L8,  0, 1, 0, 3300000, 3300000, NULL,          0,     0),
+ 	RPM_LDO(L9,  0, 1, 0, 3000000, 3000000, NULL,          0,     0),
+ 	RPM_LDO(L10, 0, 1, 0, 2900000, 2900000, NULL,          0,     0),
+ 	RPM_LDO(L11, 0, 1, 0, 3000000, 3000000, NULL,          0,     0),
+@@ -669,14 +676,16 @@ apq8064_rpm_regulator_init_data[] __devinitdata = {
+ 	RPM_LDO(L21, 0, 1, 0, 1050000, 1050000, NULL,          0,     0),
+ 	RPM_LDO(L22, 0, 1, 0, 2600000, 2600000, NULL,          0,     0),
+ 	RPM_LDO(L23, 0, 1, 0, 1800000, 1800000, NULL,          0,     0),
++	/*	RPM_LDO(L23, 1, 1, 0, 1800000, 1800000, NULL,          0,     0), *//* mipi display bringup */
+ 	RPM_LDO(L24, 0, 1, 1,  750000, 1150000, "8921_s1", 10000, 10000),
++	/*	RPM_LDO(L24,  0, 1, 0, 1050000, 1050000, "8921_s4",     0,     0), *//* mipi display bringup */
+ 	RPM_LDO(L25, 1, 1, 0, 1250000, 1250000, "8921_s1", 10000, 10000),
+ 	RPM_LDO(L27, 0, 0, 0, 1100000, 1100000, "8921_s7",     0,     0),
+ 	RPM_LDO(L28, 0, 1, 0, 1050000, 1050000, "8921_s7",     0,     0),
+ 	RPM_LDO(L29, 0, 1, 0, 2000000, 2000000, NULL,          0,     0),
+ 
+ 	/*     ID  a_on pd ss                   supply */
+-	RPM_VS(LVS1, 0, 1, 0,                   "8921_s4"),
++	RPM_VS(LVS1, 1, 1, 0,                   "8921_s4"), /* keep always ON */
+ 	RPM_VS(LVS3, 0, 1, 0,                   "8921_s4"),
+ 	RPM_VS(LVS4, 0, 1, 0,                   "8921_s4"),
+ 	RPM_VS(LVS5, 0, 1, 0,                   "8921_s4"),
+@@ -694,20 +703,20 @@ apq8064_rpm_regulator_pm8921_init_data[] __devinitdata = {
+ };
+ 
+ int msm8064_pm8921_regulator_pdata_len __devinitdata =
+-	ARRAY_SIZE(msm8064_pm8921_regulator_pdata);
++ARRAY_SIZE(msm8064_pm8921_regulator_pdata);
+ int msm8064_pm8917_regulator_pdata_len __devinitdata =
+-	ARRAY_SIZE(msm8064_pm8917_regulator_pdata);
++ARRAY_SIZE(msm8064_pm8917_regulator_pdata);
+ 
+ #define RPM_REG_MAP(_id, _sleep_also, _voter, _supply, _dev_name) \
+-	{ \
+-		.vreg_id = RPM_VREG_ID_PM8921_##_id, \
+-		.sleep_also = _sleep_also, \
+-		.voter = _voter, \
+-		.supply = _supply, \
+-		.dev_name = _dev_name, \
+-	}
++{ \
++	.vreg_id = RPM_VREG_ID_PM8921_##_id, \
++	.sleep_also = _sleep_also, \
++	.voter = _voter, \
++	.supply = _supply, \
++	.dev_name = _dev_name, \
++}
+ static struct rpm_regulator_consumer_mapping
+-	      msm_rpm_regulator_consumer_mapping[] __devinitdata = {
++msm_rpm_regulator_consumer_mapping[] __devinitdata = {
+ 	RPM_REG_MAP(LVS7, 0, 1, "krait0_hfpll", "acpuclk-8064"),
+ 	RPM_REG_MAP(LVS7, 0, 2, "krait1_hfpll", "acpuclk-8064"),
+ 	RPM_REG_MAP(LVS7, 0, 4, "krait2_hfpll", "acpuclk-8064"),
+-- 
+1.7.9.5
+

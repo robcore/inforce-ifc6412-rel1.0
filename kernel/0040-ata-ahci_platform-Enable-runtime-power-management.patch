@@ -1,0 +1,49 @@
+From f2a9189513b43675e42dedf523efacfc7cc0c8ea Mon Sep 17 00:00:00 2001
+From: Sujit Reddy Thumma <sthumma@codeaurora.org>
+Date: Tue, 12 Nov 2013 16:19:06 +0530
+Subject: [PATCH 4/5] ata: ahci_platform: Enable runtime power management
+
+Change-Id: I8026b4db8d3036de175563c50ef26cdc0adfab0a
+---
+ drivers/ata/ahci_platform.c |   11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/drivers/ata/ahci_platform.c b/drivers/ata/ahci_platform.c
+index 427207d..95d879a 100644
+--- a/drivers/ata/ahci_platform.c
++++ b/drivers/ata/ahci_platform.c
+@@ -21,6 +21,7 @@
+ #include <linux/platform_device.h>
+ #include <linux/libata.h>
+ #include <linux/ahci_platform.h>
++#include <linux/pm_runtime.h>
+ #include "ahci.h"
+ 
+ enum ahci_type {
+@@ -192,6 +193,14 @@ static int __devinit ahci_probe(struct platform_device *pdev)
+ 	if (rc)
+ 		goto err0;
+ 
++	rc = pm_runtime_set_active(dev);
++	if (rc) {
++		dev_warn(dev, "Unable to set runtime pm active err=%d\n", rc);
++	} else {
++		pm_runtime_enable(dev);
++		pm_runtime_forbid(dev);
++	}
++
+ 	return 0;
+ err0:
+ 	if (pdata && pdata->exit)
+@@ -275,6 +284,8 @@ static int ahci_resume(struct device *dev)
+ static struct dev_pm_ops ahci_pm_ops = {
+ 	.suspend		= &ahci_suspend,
+ 	.resume			= &ahci_resume,
++	.runtime_suspend	= &ahci_suspend,
++	.runtime_resume		= &ahci_resume,
+ };
+ #endif
+ 
+-- 
+1.7.9.5
+

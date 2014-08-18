@@ -1,0 +1,27 @@
+From c1e93f7219ab6558f6d386aa4a9bae79a8b4fc7b Mon Sep 17 00:00:00 2001
+From: Arjun Prasad <arjun@inforcecomputing.com>
+Date: Mon, 30 Dec 2013 12:08:23 +0530
+Subject: [PATCH 35/35] bluetooth: Adding MSM8960 dependency in marimba core
+
+Change-Id: I6f5c2299abcd10aff8d8816e89912b270cd02648
+Signed-off-by: Inforce Computing <inforce@inforcecomputing.com>
+---
+ drivers/mfd/Kconfig |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/mfd/Kconfig b/drivers/mfd/Kconfig
+index 8c392fc..464f19f 100644
+--- a/drivers/mfd/Kconfig
++++ b/drivers/mfd/Kconfig
+@@ -248,7 +248,7 @@ config MENELAUS
+ 
+ config MARIMBA_CORE
+ 	tristate "Marimba Core"
+-	depends on I2C && (ARCH_MSM7X30 || ARCH_MSM8X60 || ARCH_MSM7X27A)
++	depends on I2C && (ARCH_MSM7X30 || ARCH_MSM8X60 || ARCH_MSM7X27A || ARCH_MSM8960)
+ 	default n
+ 	help
+ 	  Enables the Marimba Core driver. The core driver provides
+-- 
+1.7.9.5
+

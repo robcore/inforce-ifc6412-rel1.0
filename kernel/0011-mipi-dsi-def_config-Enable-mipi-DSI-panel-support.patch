@@ -1,0 +1,40 @@
+From 62dc90ca57afbc024470285fe9166de31cf09754 Mon Sep 17 00:00:00 2001
+From: Suman Kumar <suman@inforcecomputing.com>
+Date: Thu, 20 Feb 2014 16:06:11 +0530
+Subject: [PATCH 11/35] mipi dsi: def_config: Enable mipi DSI panel support
+
+Change-Id: Ib9015d41db406af34ca1d8303a41f0ba963af687
+---
+ arch/arm/configs/msm8960-perf_defconfig |    2 +-
+ arch/arm/configs/msm8960_defconfig      |    2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm/configs/msm8960-perf_defconfig b/arch/arm/configs/msm8960-perf_defconfig
+index 913d570..3238994 100644
+--- a/arch/arm/configs/msm8960-perf_defconfig
++++ b/arch/arm/configs/msm8960-perf_defconfig
+@@ -418,7 +418,7 @@ CONFIG_FB_MSM_NO_MDP_PIPE_CTRL=y
+ CONFIG_FB_MSM_OVERLAY0_WRITEBACK=y
+ CONFIG_FB_MSM_OVERLAY1_WRITEBACK=y
+ CONFIG_FB_MSM_WRITEBACK_MSM_PANEL=y
+-CONFIG_FB_MSM_LVDS_MIPI_PANEL_DETECT=y
++CONFIG_FB_MSM_MIPI_PANEL_DETECT=y
+ CONFIG_FB_MSM_HDMI_MSM_PANEL=y
+ CONFIG_BACKLIGHT_LCD_SUPPORT=y
+ CONFIG_BACKLIGHT_CLASS_DEVICE=y
+diff --git a/arch/arm/configs/msm8960_defconfig b/arch/arm/configs/msm8960_defconfig
+index 7b0f9de..9e9ea4f 100644
+--- a/arch/arm/configs/msm8960_defconfig
++++ b/arch/arm/configs/msm8960_defconfig
+@@ -424,7 +424,7 @@ CONFIG_FB_MSM_NO_MDP_PIPE_CTRL=y
+ CONFIG_FB_MSM_OVERLAY0_WRITEBACK=y
+ CONFIG_FB_MSM_OVERLAY1_WRITEBACK=y
+ CONFIG_FB_MSM_WRITEBACK_MSM_PANEL=y
+-CONFIG_FB_MSM_LVDS_MIPI_PANEL_DETECT=y
++CONFIG_FB_MSM_MIPI_PANEL_DETECT=y
+ CONFIG_FB_MSM_HDMI_MSM_PANEL=y
+ CONFIG_BACKLIGHT_LCD_SUPPORT=y
+ CONFIG_BACKLIGHT_CLASS_DEVICE=y
+-- 
+1.7.9.5
+

@@ -1,0 +1,37 @@
+From 6687d65f80afa478576a57b82e08f408e8d38112 Mon Sep 17 00:00:00 2001
+From: Amit Kumar <amit@inforcecomputing.com>
+Date: Fri, 17 Jan 2014 12:20:43 +0530
+Subject: [PATCH 1/4] Enable ethernet and configure MAC address
+
+Change-Id: If181c2443cf365e89beb6385995a5e4a80c1837d
+---
+ rootdir/etc/init.qcom.rc |   13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/rootdir/etc/init.qcom.rc b/rootdir/etc/init.qcom.rc
+index 3d424df..56c1134 100755
+--- a/rootdir/etc/init.qcom.rc
++++ b/rootdir/etc/init.qcom.rc
+@@ -699,6 +699,19 @@ on property:persist.sys.ssr.restart_level=1
+ on property:persist.sys.ssr.restart_level=3
+     write /sys/module/subsystem_restart/parameters/restart_level 3
+ 
++    #ethernet Config
++    on property:persist.eth.enable=1
++	insmod /system/lib/modules/alx/alx.ko
++	setprop net.dns1 8.8.8.8
++	setprop net.dns2 8.8.4.4
++	setprop ro.kernel.android.ndns 2
++
++    service ether /system/bin/sh /data/eth0.sh
++	class late_start
++	user root system
++	oneshot
++        group root system 
++
+ on property:persist.radio.sglte_sim_active=true
+     kill qmiproxy 15
+ on property:persist.radio.sglte_sim_active=false
+-- 
+1.7.9.5
+

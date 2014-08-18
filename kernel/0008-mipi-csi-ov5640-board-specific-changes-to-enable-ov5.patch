@@ -1,0 +1,97 @@
+From 567ea27d67cf31a926a128c4d1e7d00f3b57d6c3 Mon Sep 17 00:00:00 2001
+From: Suman Kumar <suman@inforcecomputing.com>
+Date: Thu, 30 Jan 2014 18:00:35 +0530
+Subject: [PATCH 08/35] mipi csi: ov5640: board specific changes to enable
+ ov5640 primary mipi camera on Inforce IFC6412
+ platform
+
+Change-Id: I9e6434ba4ac777c1566a494e30f7c55d8f6f8cbf
+Signed-off-by: Suman Kumar <suman@inforcecomputing.com>
+---
+ arch/arm/mach-msm/board-8064-camera.c |   35 +++++++++++++++++++++++++++++++++
+ arch/arm/mach-msm/board-8064-pmic.c   |    3 +++
+ arch/arm/mach-msm/clock-8960.c        |    1 +
+ 3 files changed, 39 insertions(+)
+
+diff --git a/arch/arm/mach-msm/board-8064-camera.c b/arch/arm/mach-msm/board-8064-camera.c
+index da395da..9077823 100644
+--- a/arch/arm/mach-msm/board-8064-camera.c
++++ b/arch/arm/mach-msm/board-8064-camera.c
+@@ -690,6 +690,35 @@ static struct msm_camera_sensor_info msm_camera_sensor_mt9m114_data = {
+ 	.sensor_type = YUV_SENSOR,
+ };
+ 
++#ifdef CONFIG_OV5640
++static struct msm_camera_sensor_flash_data flash_ov5640 = {
++    .flash_type = MSM_CAMERA_FLASH_NONE
++};
++
++static struct msm_camera_csi_lane_params ov5640_csi_lane_params = {
++    .csi_lane_assign = 0xE4,
++    .csi_lane_mask = 0x3,
++};
++
++static struct msm_camera_sensor_platform_info sensor_board_info_ov5640 =
++{
++    .mount_angle = 0,
++    .gpio_conf = &apq8064_back_cam_gpio_conf,
++    .i2c_conf = &apq8064_back_cam_i2c_conf,
++    .csi_lane_params = &ov5640_csi_lane_params,
++};
++
++static struct msm_camera_sensor_info msm_camera_sensor_ov5640_data = {
++    .sensor_name = "ov5640",
++    .pdata = &msm_camera_csi_device_data[0],
++    .flash_data = &flash_ov5640,
++    .sensor_platform_info = &sensor_board_info_ov5640,
++    .csi_if = 1,
++    .camera_type = BACK_CAMERA_2D,
++    .sensor_type = YUV_SENSOR,
++};
++#endif
++
+ static struct msm_camera_sensor_flash_data flash_ov2720 = {
+ 	.flash_type	= MSM_CAMERA_FLASH_NONE,
+ };
+@@ -764,6 +793,12 @@ static struct i2c_board_info apq8064_camera_i2c_boardinfo[] = {
+ 	I2C_BOARD_INFO("mt9m114", 0x48),
+ 	.platform_data = &msm_camera_sensor_mt9m114_data,
+ 	},
++#ifdef CONFIG_OV5640
++   {
++   I2C_BOARD_INFO("ov5640", 0x3C),
++   .platform_data = &msm_camera_sensor_ov5640_data,
++   },
++#endif
+ 	{
+ 	I2C_BOARD_INFO("ov2720", 0x6C),
+ 	.platform_data = &msm_camera_sensor_ov2720_data,
+diff --git a/arch/arm/mach-msm/board-8064-pmic.c b/arch/arm/mach-msm/board-8064-pmic.c
+index c45f75b..2de2f18 100644
+--- a/arch/arm/mach-msm/board-8064-pmic.c
++++ b/arch/arm/mach-msm/board-8064-pmic.c
+@@ -128,6 +128,9 @@ static struct pm8xxx_gpio_init pm8921_gpios[] __initdata = {
+ 	PM8921_GPIO_OUTPUT(34, 0, MED),
+ 	PM8921_GPIO_OUTPUT(13, 0, HIGH),               /* PCIE_CLK_PWR_EN */
+ 	PM8921_GPIO_INPUT(12, PM_GPIO_PULL_UP_30),     /* PCIE_WAKE_N */
++#ifdef CONFIG_OV5640
++	PM8921_GPIO_OUTPUT(28,1, MED),
++#endif
+ };
+ 
+ static struct pm8xxx_gpio_init pm8921_mtp_kp_gpios[] __initdata = {
+diff --git a/arch/arm/mach-msm/clock-8960.c b/arch/arm/mach-msm/clock-8960.c
+index 34407e3..9eac9af 100755
+--- a/arch/arm/mach-msm/clock-8960.c
++++ b/arch/arm/mach-msm/clock-8960.c
+@@ -5405,6 +5405,7 @@ static struct clk_lookup msm_clocks_8064[] = {
+ 	CLK_LOOKUP("cam_clk",		cam0_clk.c,	"4-0034"),
+ 	CLK_LOOKUP("cam_clk",		cam0_clk.c,	"4-0020"),
+ 	CLK_LOOKUP("cam_clk",		cam1_clk.c,	"4-0048"),
++	CLK_LOOKUP("cam_clk",		cam0_clk.c,	"4-003c"),
+ 	CLK_LOOKUP("cam_clk",		cam1_clk.c,	"4-006c"),
+ 	CLK_LOOKUP("csi_src_clk",	csi0_src_clk.c,		"msm_csid.0"),
+ 	CLK_LOOKUP("csi_src_clk",	csi1_src_clk.c,		"msm_csid.1"),
+-- 
+1.7.9.5
+

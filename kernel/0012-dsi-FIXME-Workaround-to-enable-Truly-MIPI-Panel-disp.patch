@@ -1,0 +1,43 @@
+From 3c34e641edbb7e3123b2e842b14218ca554d35cd Mon Sep 17 00:00:00 2001
+From: Suman Kumar <suman@inforcecomputing.com>
+Date: Thu, 20 Feb 2014 16:08:29 +0530
+Subject: [PATCH 12/35] dsi: FIXME: Workaround to enable Truly MIPI Panel
+ display
+
+Change-Id: I19d88b4ca8735f6bdafba63403e164863429dd64
+---
+ arch/arm/mach-msm/board-8064-display.c |   11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/arch/arm/mach-msm/board-8064-display.c b/arch/arm/mach-msm/board-8064-display.c
+index 24f8f9f..d051c41 100644
+--- a/arch/arm/mach-msm/board-8064-display.c
++++ b/arch/arm/mach-msm/board-8064-display.c
+@@ -61,6 +61,7 @@ static struct resource msm_fb_resources[] = {
+ #define LVDS_FRC_PANEL_NAME "lvds_frc_fhd"
+ #define MIPI_VIDEO_TOSHIBA_WSVGA_PANEL_NAME "mipi_video_toshiba_wsvga"
+ #define MIPI_VIDEO_CHIMEI_WXGA_PANEL_NAME "mipi_video_chimei_wxga"
++#define MIPI_VIDEO_TRULY_WVGA_PANEL_NAME "mipi_video_truly_wvga"
+ #define HDMI_PANEL_NAME "hdmi_msm"
+ #define MHL_PANEL_NAME "hdmi_msm,mhl_8334"
+ #define TVOUT_PANEL_NAME "tvout_msm"
+@@ -110,6 +111,16 @@ static int msm_fb_detect_panel(const char *name)
+ 			strnlen(MIPI_VIDEO_TOSHIBA_WSVGA_PANEL_NAME,
+ 				PANEL_NAME_MAX_LEN)))
+ 			return 0;
++	/* FIXME: TODO: Once the fix to read platform id from EEPROM or
++	* SBL2 is done we need to remove machine_is_apq8064_cdp.
++	* the cdp version should use lvds option while ifc6412 should
++	* use truly display as truly is for ifc6412 board
++	*/
++	} else if (machine_is_apq8064_cdp() || machine_is_apq8064_ifc6412()) {
++		if (!strncmp(name, MIPI_VIDEO_TRULY_WVGA_PANEL_NAME,
++			strnlen(MIPI_VIDEO_TRULY_WVGA_PANEL_NAME,
++				PANEL_NAME_MAX_LEN)))
++				return 0;
+ 	} else if (machine_is_apq8064_cdp()) {
+ 		if (!strncmp(name, LVDS_CHIMEI_PANEL_NAME,
+ 			strnlen(LVDS_CHIMEI_PANEL_NAME,
+-- 
+1.7.9.5
+

@@ -1,0 +1,170 @@
+From bfbaea99f4bffe28dc39f5926c5eba6f86207a30 Mon Sep 17 00:00:00 2001
+From: Suman Kumar <suman@inforcecomputing.com>
+Date: Fri, 23 May 2014 13:09:56 +0530
+Subject: [PATCH] audio: Added support for APQ8064.
+
+	Added support for APQ8064 board and switching of input and output jacks
+through system properties.
+
+Change-Id: Id7c661fc503f34b718a3878e119fa484bb011845
+---
+ legacy/alsa_sound/ALSADevice.cpp        |   60 +++++++++++++++++++++++++++++--
+ legacy/alsa_sound/AudioHardwareALSA.cpp |    9 +++--
+ legacy/libalsa-intf/alsa_ucm.h          |    8 +++++
+ legacy/libalsa-intf/msm8960_use_cases.h |    2 ++
+ 4 files changed, 75 insertions(+), 4 deletions(-)
+
+diff --git a/legacy/alsa_sound/ALSADevice.cpp b/legacy/alsa_sound/ALSADevice.cpp
+index 7baf0ae..bb9e769 100644
+--- a/legacy/alsa_sound/ALSADevice.cpp
++++ b/legacy/alsa_sound/ALSADevice.cpp
+@@ -1643,6 +1643,22 @@ char* ALSADevice::getUCMDevice(uint32_t devices, int input, char *rxDevice)
+                 return strdup(SND_USE_CASE_DEV_EARPIECE); /* HANDSET RX */
+             }
+         } else if (devices & AudioSystem::DEVICE_OUT_SPEAKER) {
++	char output_jack[PROPERTY_VALUE_MAX];
++            property_get("apq.audio.output_jack",output_jack,"Speaker");
++            if (!strncmp(output_jack, "lime", 4)) {
++                ALOGD("Using output : %s", output_jack);
++                return strdup(SND_USE_CASE_DEV_SPEAKER_LIME);
++            } else if (!strncmp(output_jack, "black", 5)) {
++                ALOGD("Using output : %s", output_jack);
++                return strdup(SND_USE_CASE_DEV_SPEAKER_BLACK);
++            } else if (!strncmp(output_jack, "orange", 6)) {
++                ALOGD("Using output : %s", output_jack);
++                return strdup(SND_USE_CASE_DEV_SPEAKER_ORANGE);
++            } else if (!strncmp(output_jack, "combo", 5)) {
++                ALOGD("Using output : %s", output_jack);
++                return strdup(SND_USE_CASE_DEV_SPEAKER_COMBO);
++            }
++            ALOGE("Using output : %s", "Speaker");
+             return strdup(SND_USE_CASE_DEV_SPEAKER); /* SPEAKER RX */
+         } else if ((devices & AudioSystem::DEVICE_OUT_WIRED_HEADSET) ||
+                    (devices & AudioSystem::DEVICE_OUT_WIRED_HEADPHONE)) {
+@@ -1803,6 +1819,20 @@ char* ALSADevice::getUCMDevice(uint32_t devices, int input, char *rxDevice)
+                         (strlen(SND_USE_CASE_DEV_SPEAKER)+1)))) {
+                             return strdup(SND_USE_CASE_DEV_QUAD_MIC); /* QUADMIC TX */
+                     } else {
++			char input_jack[PROPERTY_VALUE_MAX];
++                        property_get("apq.audio.input_jack",input_jack,"Line");
++                        if (!strncmp(input_jack, "pink", 4)) {
++                            ALOGD("Using input : %s", input_jack);
++                            return strdup(SND_USE_CASE_DEV_LINE_PINK);
++                        } else if (!strncmp(input_jack, "grey", 4)) {
++                            ALOGD("Using input : %s", input_jack);
++                            return strdup(SND_USE_CASE_DEV_LINE_GREY);
++                        } else if (!strncmp(input_jack, "blue", 4)) {
++                            ALOGD("Using input : %s", input_jack);
++                            return strdup(SND_USE_CASE_DEV_LINE_BLUE);
++                        }
++                        ALOGD("Using input : %s", SND_USE_CASE_DEV_LINE);
++
+                         if ((rxDevice != NULL) &&
+                             !strncmp(rxDevice, SND_USE_CASE_DEV_ANC_HANDSET,
+                                 strlen(SND_USE_CASE_DEV_ANC_HANDSET) + 1)) {
+@@ -1828,7 +1858,20 @@ char* ALSADevice::getUCMDevice(uint32_t devices, int input, char *rxDevice)
+                 }
+ #endif
+                 else {
+-                    if ((rxDevice != NULL) &&
++                    char input_jack[PROPERTY_VALUE_MAX];
++                    property_get("apq.audio.input_jack",input_jack,"Line");
++                    if (!strncmp(input_jack, "pink", 4)) {
++                        ALOGD("Using input : %s", input_jack);
++                        return strdup(SND_USE_CASE_DEV_LINE_PINK);
++                    } else if (!strncmp(input_jack, "grey", 4)) {
++                        ALOGD("Using input : %s", input_jack);
++                        return strdup(SND_USE_CASE_DEV_LINE_GREY);
++                    } else if (!strncmp(input_jack, "blue", 4)) {
++                        ALOGD("Using input : %s", input_jack);
++                        return strdup(SND_USE_CASE_DEV_LINE_BLUE);
++                    }
++                    ALOGE("Using input : %s", SND_USE_CASE_DEV_LINE);
++                       if ((rxDevice != NULL) &&
+                         !strncmp(rxDevice, SND_USE_CASE_DEV_ANC_HANDSET,
+                             strlen(SND_USE_CASE_DEV_ANC_HANDSET) + 1)) {
+                         return strdup(SND_USE_CASE_DEV_AANC_LINE); /* AANC LINE TX */
+@@ -1895,7 +1938,20 @@ char* ALSADevice::getUCMDevice(uint32_t devices, int input, char *rxDevice)
+             if (!strncmp(mMicType, "analog", 6)) {
+                 return strdup(SND_USE_CASE_DEV_HANDSET); /* HANDSET TX */
+             } else {
+-#ifdef SEPERATED_AUDIO_INPUT
++		char input_jack[PROPERTY_VALUE_MAX];
++                property_get("apq.audio.input_jack",input_jack,"Line");
++                if (!strncmp(input_jack, "pink", 4)) {
++                    ALOGD("Using input : %s", input_jack);
++                    return strdup(SND_USE_CASE_DEV_LINE_PINK);
++                } else if (!strncmp(input_jack, "grey", 4)) {
++                    ALOGD("Using input : %s", input_jack);
++                    return strdup(SND_USE_CASE_DEV_LINE_GREY);
++                } else if (!strncmp(input_jack, "blue", 4)) {
++                    ALOGD("Using input : %s", input_jack);
++                    return strdup(SND_USE_CASE_DEV_LINE_BLUE);
++                }
++                ALOGE("Using input : %s", SND_USE_CASE_DEV_LINE);
++ #ifdef SEPERATED_AUDIO_INPUT
+                 if (callMode == AUDIO_MODE_IN_CALL) {
+                     return strdup(SND_USE_CASE_DEV_VOC_LINE); /* Voice BUILTIN-MIC TX */
+                 } else if(mInput_source == AUDIO_SOURCE_CAMCORDER) {
+diff --git a/legacy/alsa_sound/AudioHardwareALSA.cpp b/legacy/alsa_sound/AudioHardwareALSA.cpp
+index b2d13f3..4dedb7c 100644
+--- a/legacy/alsa_sound/AudioHardwareALSA.cpp
++++ b/legacy/alsa_sound/AudioHardwareALSA.cpp
+@@ -282,8 +282,13 @@ AudioHardwareALSA::AudioHardwareALSA() :
+                }
+                fclose(fp);
+            } else {
+-               aux_ucm_avail = true;
+-               strcpy(ucm_name_str,"snd_soc_msm_2x");
++               if (!strncmp("apq", baseband, 3)) {
++                	ALOGV("Detected tabla 2.x APQ sound card");
++                	snd_use_case_mgr_open(&mUcMgr, "snd_soc_msm_2x_apq8064");
++            	} else {
++             		ALOGV("Detected tabla 2.x sound card");
++             		snd_use_case_mgr_open(&mUcMgr, "snd_soc_msm_2x");
++		}
+            }
+            break;
+    }
+diff --git a/legacy/libalsa-intf/alsa_ucm.h b/legacy/libalsa-intf/alsa_ucm.h
+index a72ca27..ea56f5a 100644
+--- a/legacy/libalsa-intf/alsa_ucm.h
++++ b/legacy/libalsa-intf/alsa_ucm.h
+@@ -124,6 +124,14 @@ extern "C" {
+ #define SND_USE_CASE_DEV_EARPIECE	"Earpiece"
+ #define SND_USE_CASE_DEV_SPDIF		"SPDIF"
+ #define SND_USE_CASE_DEV_HDMI		"HDMI"
++
++#define SND_USE_CASE_DEV_SPEAKER_LIME	"OutputLime"
++#define SND_USE_CASE_DEV_SPEAKER_BLACK	"OutputBlack"
++#define SND_USE_CASE_DEV_SPEAKER_ORANGE	"OutputOrange"
++#define SND_USE_CASE_DEV_SPEAKER_COMBO	"OutputCombo"
++#define SND_USE_CASE_DEV_LINE_PINK	"InputPink"
++#define SND_USE_CASE_DEV_LINE_GREY	"InputGrey"
++#define SND_USE_CASE_DEV_LINE_BLUE	"InputBlue"
+ /* add new devices to end of list */
+ 
+ 
+diff --git a/legacy/libalsa-intf/msm8960_use_cases.h b/legacy/libalsa-intf/msm8960_use_cases.h
+index 3c966bf..d51a08e 100644
+--- a/legacy/libalsa-intf/msm8960_use_cases.h
++++ b/legacy/libalsa-intf/msm8960_use_cases.h
+@@ -184,6 +184,7 @@ static const char *card_list[] = {
+     "snd_soc_msm",
+     "snd_soc_msm_2x",
+     "snd_soc_msm_2x_mpq",
++    "snd_soc_msm_2x_apq8064",
+     "snd_soc_msm_2x_Fusion3",
+     "snd_soc_msm_Sitar",
+     "snd_soc_msm_Sitar_Sglte",
+@@ -205,6 +206,7 @@ typedef struct card_mapping {
+ static card_mapping_t card_mapping_list[] = {
+     {"snd_soc_msm", 0},
+     {"snd_soc_msm_2x", 0},
++    {"snd_soc_msm_2x_apq8064", 0},
+     {"snd_soc_msm_2x_mpq", 0},
+     {"snd_soc_msm_2x_Fusion3", 0},
+     {"snd_soc_msm_Sitar", 0},
+-- 
+1.7.9.5
+

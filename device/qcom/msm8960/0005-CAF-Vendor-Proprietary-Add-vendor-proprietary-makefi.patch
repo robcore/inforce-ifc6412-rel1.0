@@ -1,0 +1,27 @@
+From 6f50ce3a3aaaeb95a315649ec505a937c9e97b30 Mon Sep 17 00:00:00 2001
+From: Suman Kumar <suman@inforcecomputing.com>
+Date: Thu, 14 Nov 2013 14:45:49 +0530
+Subject: [PATCH 6/7] CAF: Vendor Proprietary: Add vendor proprietary makefile
+ to link qualcomm proprietary binary blobs
+
+Change-Id: Iaeae7599274aba892f14c4622ac9f919fef437a5
+---
+ msm8960.mk |    2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/msm8960.mk b/msm8960.mk
+index b814143..2b6df27 100644
+--- a/msm8960.mk
++++ b/msm8960.mk
+@@ -52,6 +52,8 @@ PRODUCT_PACKAGES += \
+     battery_monitor \
+     battery_shutdown
+ 
++$(call inherit-product, vendor/qcom/proprietary/prebuilt/target/product/msm8960/prebuilt.mk)
++
+ # Wallpapers
+ PRODUCT_PACKAGES += Galaxy4
+ PRODUCT_PACKAGES += HoloSpiralWallpaper
+-- 
+1.7.9.5
+

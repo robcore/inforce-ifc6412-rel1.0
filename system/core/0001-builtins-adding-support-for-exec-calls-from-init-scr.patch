@@ -1,0 +1,133 @@
+From c692f9473a1964973c5ec88ee030ae2602c14d75 Mon Sep 17 00:00:00 2001
+From: Arjun Prasad <arjun@inforcecomputing.com>
+Date: Mon, 19 May 2014 18:25:59 +0530
+Subject: [PATCH] builtins:adding support for exec calls from init scripts
+
+Change-Id: Ie416a0f59221f0ec5d38e49682f93e4cdd4023fd
+---
+ init/builtins.c |  100 ++++++++++++++++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 99 insertions(+), 1 deletion(-)
+
+diff --git a/init/builtins.c b/init/builtins.c
+index e8c8f91..664222f 100644
+--- a/init/builtins.c
++++ b/init/builtins.c
+@@ -35,6 +35,8 @@
+ #include <cutils/android_reboot.h>
+ #include <sys/system_properties.h>
+ #include <fs_mgr.h>
++#include <pthread.h>
++#include <sys/poll.h>
+ 
+ #include <selinux/selinux.h>
+ #include <selinux/label.h>
+@@ -238,9 +240,105 @@ int do_domainname(int nargs, char **args)
+     return write_file("/proc/sys/kernel/domainname", args[1]);
+ }
+ 
++static void *exec_properties_service(void *arg)
++{
++    int rc;
++    struct pollfd pfds[2];
++
++    pfds[0].fd = get_property_set_fd();
++    pfds[0].events = POLLIN;
++    pfds[0].revents = 0;
++
++    pfds[1].fd = (int)arg;
++    pfds[1].events = POLLIN;
++    pfds[1].revents = 0;
++
++    for (;;) {
++        do {
++            rc = poll(pfds, 2, -1);
++        } while (rc == -1 && errno == EINTR);
++
++        if (pfds[0].revents == POLLIN) {
++            handle_property_set_fd();
++        } else {
++            break;
++        }
++    }
++
++    return NULL;
++}
++
++#define MAX_PARAMETERS 64
+ int do_exec(int nargs, char **args)
+ {
+-    return -1;
++    pid_t pid;
++    int status, i, j;
++    char *par[MAX_PARAMETERS];
++    char prop_val[PROP_VALUE_MAX];
++    int len;
++
++    if (nargs > MAX_PARAMETERS)
++    {
++        return -1;
++    }
++
++    for(i=0, j=1; i<(nargs-1) ;i++,j++)
++    {
++        if ((args[j])
++            &&
++            (!expand_props(prop_val, args[j], sizeof(prop_val))))
++
++        {
++            len = strlen(args[j]);
++            if (strlen(prop_val) <= len) {
++                /* Overwrite arg with expansion.
++                 *
++                 * For now, only allow an expansion length that
++                 * can fit within the original arg length to
++                 * avoid extra allocations.
++                 * On failure, use original argument.
++                 */
++                strncpy(args[j], prop_val, len + 1);
++            }
++        }
++        par[i] = args[j];
++    }
++
++    par[i] = (char*)0;
++    pid = fork();
++    if (!pid)
++    {
++        execv(par[0],par);
++    }
++    else
++    {
++        int rc = 1, fd[2];
++        pthread_t pt;
++
++        /* Create properties service thread to handle any setprop
++           calls within the exec task to speed things up.
++           Ignore errors as even without the service thread,
++           the setprop will still execute and the caller using
++           setprop/bionic will timeout in a short time anyways.
++         */
++        if (pipe(fd) != -1) {
++            rc = pthread_create(&pt, NULL, exec_properties_service, (void *)fd[0]);
++            if (rc != 0) {
++                close(fd[0]);
++                close(fd[1]);
++            }
++        }
++
++        while(wait(&status)!=pid);
++
++        if (rc == 0) {
++            close(fd[1]);
++            pthread_join(pt, NULL);
++            close(fd[0]);
++        }
++    }
++
++    return 0;
+ }
+ 
+ int do_export(int nargs, char **args)
+-- 
+1.7.9.5
+

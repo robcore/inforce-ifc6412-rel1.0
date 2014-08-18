@@ -1,0 +1,38 @@
+From 0dc5a9b80308da5ffc38098bf0507b740f692d68 Mon Sep 17 00:00:00 2001
+From: Arjun Prasad <arjun@inforcecomputing.com>
+Date: Fri, 11 Apr 2014 18:00:10 +0530
+Subject: [PATCH] WiFi:Changes in wpa_sipplicant_conf file for wifi
+
+Change-Id: I59982a23fb1de6b5f9c3c976b830fdaa52ebb10a
+---
+ wpa_supplicant/wpa_supplicant_conf.mk |   12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/wpa_supplicant/wpa_supplicant_conf.mk b/wpa_supplicant/wpa_supplicant_conf.mk
+index 74986ea..cd09c07 100644
+--- a/wpa_supplicant/wpa_supplicant_conf.mk
++++ b/wpa_supplicant/wpa_supplicant_conf.mk
+@@ -11,14 +11,14 @@
+ LOCAL_PATH := $(call my-dir)
+ 
+ ########################
+-include $(CLEAR_VARS)
++#include $(CLEAR_VARS)
+ 
+-LOCAL_MODULE := wpa_supplicant.conf
+-LOCAL_MODULE_CLASS := ETC
+-LOCAL_MODULE_TAGS := optional
+-LOCAL_MODULE_PATH := $(TARGET_OUT_ETC)/wifi
++#LOCAL_MODULE := wpa_supplicant.conf
++#LOCAL_MODULE_CLASS := ETC
++#LOCAL_MODULE_TAGS := optional
++#LOCAL_MODULE_PATH := $(TARGET_OUT_ETC)/wifi
+ 
+-include $(BUILD_SYSTEM)/base_rules.mk
++#include $(BUILD_SYSTEM)/base_rules.mk
+ 
+ WPA_SUPPLICANT_CONF_TEMPLATE := $(LOCAL_PATH)/wpa_supplicant_template.conf
+ WPA_SUPPLICANT_CONF_SCRIPT := $(LOCAL_PATH)/wpa_supplicant_conf.sh
+-- 
+1.7.9.5
+

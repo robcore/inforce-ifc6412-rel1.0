@@ -1,0 +1,100 @@
+From 8d645c8751fb0b90620cade6cdb3997a9291c81b Mon Sep 17 00:00:00 2001
+From: Suman Kumar <suman@inforcecomputing.com>
+Date: Thu, 27 Feb 2014 17:55:22 +0530
+Subject: [PATCH 7/7] CAF: Binary Blobs: Enable MACROS for CAF build in
+ qualcomm proprietary binary blobs
+
+Change-Id: I3676507922c9929a71ec28d48db837257f9bb0db
+---
+ BoardConfig.mk |   75 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 75 insertions(+)
+
+diff --git a/BoardConfig.mk b/BoardConfig.mk
+index 25fa491..91888ab 100644
+--- a/BoardConfig.mk
++++ b/BoardConfig.mk
+@@ -12,6 +12,81 @@ USE_CAMERA_STUB := true
+ 
+ -include vendor/qcom/proprietary/common/msm8960/BoardConfigVendor.mk
+ 
++#BOARD_USES_GENERIC_AUDIO := false
++#USE_CAMERA_STUB := false
++
++#BOARD_USES_QCOM_HARDWARE := true
++DYNAMIC_SHARED_LIBV8SO := true
++#ENABLE_PLD_DOM_TRAVERSAL := true
++BOARD_USES_ADRENO_200 := true
++HAVE_ADRENO200_SOURCE := true
++HAVE_ADRENO200_SC_SOURCE := true
++HAVE_ADRENO200_FIRMWARE := true
++BOARD_USES_ALSA_AUDIO := true #need  to be verified
++#TARGET_USES_QCOM_MM_AUDIO := true
++#M_AUDIO_OMX_ADEC_EVRC_DISABLED := false
++#M_AUDIO_OMX_ADEC_QCELP13_DISABLED := false
++#M_AUDIO_FTM_DISABLED := false
++#MM_AUDIO_MEASUREMENT_DISABLED := false
++#MM_AUDIO_VOEM_DISABLED := false
++#MM_AUDIO_SRS_DISABLED := false
++#M_AUDIO_SAFX_ENABLED := true
++#BOARD_USE_QCOM_TESTONLY := true
++TARGET_USES_C2D_COMPOSITION := true
++TARGET_USES_SF_BYPASS := true
++TARGET_USES_ION := true
++#TARGET_USES_WFD := true
++USE_OPENGL_RENDERER := true
++TARGET_AVOID_DRAW_TEXTURE_EXTENSION := true
++#BOARD_VENDOR_QCOM_GPS_LOC_API_HARDWARE := default
++#BOARD_USES_SRS_TRUEMEDIA := true
++#BOARD_USES_QCNE := true
++#TARGET_HAVE_BYPASS := true
++#TARGET_MAX_BYPASS := 4
++#TARGET_HAS_S3D_SUPPORT := true
++###BOARD_USE_QCOM_LLVM_CLANG_RS := true
++#TARGET_USES_POST_PROCESSING := true
++#PROTEUS_DEVICE_API := true
++#ENABLE_WEBGL := true
++#TARGET_HAVE_TSLIB := false
++#TARGET_USES_ASHMEM := true
++
++ifneq ($(BUILD_TINY_ANDROID), true)
++  BOARD_HAS_QCOM_WLAN := true
++  BOARD_HAS_ATH_WLAN_AR6004 := true
++#  BOARD_HAVE_QCOM_FM := true
++  BOARD_HAVE_BLUETOOTH := true
++  BOARD_HAS_QCA_BT_AR3002 := true
++  HAVE_QC_TIME_SERVICES := true
++
++  ifeq ($(BOARD_HAVE_BLUETOOTH), true)
++  # Un Comment the following flag to enable bluez
++   BOARD_HAVE_BLUETOOTH_BLUEZ := true
++   ifneq ($(BOARD_HAVE_BLUETOOTH_BLUEZ), true)
++      BOARD_HAVE_BLUETOOTH_QCOM := true
++      BLUETOOTH_HCI_USE_MCT := true
++    endif #!BOARD_HAVE_BLUETOOTH_BLUEZ
++  endif #BOARD_HAVE_BLUETOOTH
++
++  ifeq ($(findstring true,$(BOARD_HAS_ATH_WLAN_AR6004) $(BOARD_HAS_QCOM_WLAN)),true)
++    BOARD_WLAN_DEVICE := qcwcn
++    BOARD_WPA_SUPPLICANT_DRIVER := NL80211
++    BOARD_WPA_SUPPLICANT_PRIVATE_LIB := lib_driver_cmd_$(BOARD_WLAN_DEVICE)
++    BOARD_HOSTAPD_DRIVER := NL80211
++    BOARD_HOSTAPD_PRIVATE_LIB := lib_driver_cmd_$(BOARD_WLAN_DEVICE)
++    BOARD_HAS_CFG80211_KERNEL3_4 := true
++    WIFI_DRIVER_MODULE_PATH := "/system/lib/modules/wlan.ko"
++    WIFI_DRIVER_MODULE_NAME := "wlan"
++    WIFI_DRIVER_MODULE_ARG := ""
++    WPA_SUPPLICANT_VERSION := VER_0_8_X
++    HOSTAPD_VERSION := VER_0_8_X
++    WIFI_DRIVER_FW_PATH_STA := "sta"
++    WIFI_DRIVER_FW_PATH_AP  := "ap"
++    WIFI_DRIVER_FW_PATH_P2P := "p2p"
++  endif
++
++endif   # !BUILD_TINY_ANDROID
++
+ TARGET_USE_HDMI_AS_PRIMARY := false
+ 
+ ifeq ($(TARGET_USE_HDMI_AS_PRIMARY),true)
+-- 
+1.7.9.5
+

@@ -1,0 +1,29 @@
+From 57d25ce293f8c9618bf5174f032cd2ee765d7087 Mon Sep 17 00:00:00 2001
+From: Nikola Mihaylov <nmihaylov@mm-sol.com>
+Date: Tue, 3 Jun 2014 11:33:34 +0530
+Subject: [PATCH 2/5] system: Added default output and input jacks for
+ APQ8064.
+
+Change-Id: I5f4d06209d3f97b26962b3fb5df40baa2c8106c0
+---
+ system.prop |    4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/system.prop b/system.prop
+index ba7e286..716b003 100644
+--- a/system.prop
++++ b/system.prop
+@@ -69,6 +69,10 @@ af.resampler.quality=255
+ # System prop to select MPQAudioPlayer by default on mpq8064
+ mpq.audio.decode=true
+ 
++# System prop to select output and input jacks
++apq.audio.output_jack=lime
++apq.audio.input_jack=pink
++
+ #
+ # system prop for opengles version
+ #
+-- 
+1.7.9.5
+

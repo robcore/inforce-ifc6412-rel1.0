@@ -1,0 +1,175 @@
+From e5cb2f8dd2f00b937533012fea8409344b99ad6c Mon Sep 17 00:00:00 2001
+From: Kalpana <kalpana@inforcecomputing.com>
+Date: Tue, 3 Jun 2014 12:20:24 +0530
+Subject: [PATCH 04/35] IFC6412: Initial board support, mach types and
+ defconfig support to boot up
+
+Change-Id: I6a90cb56c87fdefab46f9f398999b1a9ba4f69fc
+---
+ arch/arm/configs/msm8960_defconfig     |    1 +
+ arch/arm/mach-msm/Kconfig              |    7 +++++++
+ arch/arm/mach-msm/Makefile             |    1 +
+ arch/arm/mach-msm/board-8064-gpiomux.c |    2 +-
+ arch/arm/mach-msm/board-8064-pmic.c    |    4 ++--
+ arch/arm/mach-msm/board-8064-storage.c |    6 +++++-
+ arch/arm/mach-msm/board-8064.c         |   16 +++++++++++++++-
+ arch/arm/tools/mach-types              |    1 +
+ 8 files changed, 33 insertions(+), 5 deletions(-)
+
+diff --git a/arch/arm/configs/msm8960_defconfig b/arch/arm/configs/msm8960_defconfig
+index a27786c..05098f2 100644
+--- a/arch/arm/configs/msm8960_defconfig
++++ b/arch/arm/configs/msm8960_defconfig
+@@ -56,6 +56,7 @@ CONFIG_MACH_MSM8627_MTP=y
+ CONFIG_MACH_APQ8064_SIM=y
+ CONFIG_MACH_APQ8064_RUMI3=y
+ CONFIG_MACH_APQ8064_CDP=y
++CONFIG_MACH_APQ8064_IFC6412=y
+ CONFIG_MACH_APQ8064_MTP=y
+ CONFIG_MACH_APQ8064_LIQUID=y
+ CONFIG_MACH_MPQ8064_CDP=y
+diff --git a/arch/arm/mach-msm/Kconfig b/arch/arm/mach-msm/Kconfig
+index 99d0262..4dce83d 100644
+--- a/arch/arm/mach-msm/Kconfig
++++ b/arch/arm/mach-msm/Kconfig
+@@ -878,6 +878,13 @@ config MACH_APQ8064_CDP
+ 	help
+ 	  Support for the Qualcomm APQ8064 CDP device.
+ 
++config MACH_APQ8064_IFC6412
++        depends on ARCH_APQ8064
++		default y
++        bool "APQ8064 IFC6412"
++        help
++          Support for the Inforce IFC6412 Platform for Tely Labs
++
+ config MACH_APQ8064_MTP
+ 	depends on ARCH_APQ8064
+ 	bool "APQ8064 MTP"
+diff --git a/arch/arm/mach-msm/Makefile b/arch/arm/mach-msm/Makefile
+index 4abb2d9..487b9c5 100644
+--- a/arch/arm/mach-msm/Makefile
++++ b/arch/arm/mach-msm/Makefile
+@@ -276,6 +276,7 @@ obj-$(CONFIG_MACH_MSM8930_FLUID) += board-8930-all.o board-8930-regulator-pm8038
+ obj-$(CONFIG_MACH_MSM8930_EVT) += board-8930-all.o board-8930-regulator-pm8038.o board-8930-regulator-pm8917.o
+ obj-$(CONFIG_PM8921_BMS) += bms-batterydata.o bms-batterydata-desay.o batterydata-lib.o
+ obj-$(CONFIG_MACH_APQ8064_CDP) += board-8064-all.o board-8064-regulator.o
++obj-$(CONFIG_MACH_APQ8064_IFC6412) += board-8064-all.o board-8064-regulator.o
+ obj-$(CONFIG_MACH_APQ8064_MTP) += board-8064-all.o board-8064-regulator.o
+ obj-$(CONFIG_MACH_APQ8064_LIQUID) += board-8064-all.o board-8064-regulator.o
+ obj-$(CONFIG_MACH_MPQ8064_HRD) += board-8064-all.o board-8064-regulator.o
+diff --git a/arch/arm/mach-msm/board-8064-gpiomux.c b/arch/arm/mach-msm/board-8064-gpiomux.c
+index 41eee63..3ec15ae 100644
+--- a/arch/arm/mach-msm/board-8064-gpiomux.c
++++ b/arch/arm/mach-msm/board-8064-gpiomux.c
+@@ -1568,7 +1568,7 @@ void __init apq8064_init_gpiomux(void)
+ 				ARRAY_SIZE(apq8064_hsic_configs));
+ #endif
+ 
+-	if (machine_is_apq8064_cdp() || machine_is_apq8064_liquid())
++	if (machine_is_apq8064_cdp() || machine_is_apq8064_liquid() || machine_is_apq8064_ifc6412())
+ 		msm_gpiomux_install(apq8064_mxt_configs,
+ 			ARRAY_SIZE(apq8064_mxt_configs));
+ 
+diff --git a/arch/arm/mach-msm/board-8064-pmic.c b/arch/arm/mach-msm/board-8064-pmic.c
+index 383535d..c45f75b 100644
+--- a/arch/arm/mach-msm/board-8064-pmic.c
++++ b/arch/arm/mach-msm/board-8064-pmic.c
+@@ -217,7 +217,7 @@ void __init apq8064_pm8xxx_gpio_mpp_init(void)
+ 	else
+ 		apq8064_configure_gpios(pm8917_gpios, ARRAY_SIZE(pm8917_gpios));
+ 
+-	if (machine_is_apq8064_cdp() || machine_is_apq8064_liquid()) {
++	if (machine_is_apq8064_cdp() || machine_is_apq8064_liquid() || machine_is_apq8064_ifc6412()) {
+ 		if (socinfo_get_pmic_model() != PMIC_MODEL_PM8917)
+ 			apq8064_configure_gpios(pm8921_cdp_kp_gpios,
+ 					ARRAY_SIZE(pm8921_cdp_kp_gpios));
+@@ -545,7 +545,7 @@ void __init apq8064_init_pmic(void)
+ 		apq8064_pm8921_bms_pdata.battery_type = BATT_PALLADIUM;
+ 	} else if (machine_is_apq8064_liquid()) {
+ 		apq8064_pm8921_bms_pdata.battery_type = BATT_DESAY;
+-	} else if (machine_is_apq8064_cdp()) {
++	} else if (machine_is_apq8064_cdp() || machine_is_apq8064_ifc6412()) {
+ 		apq8064_pm8921_chg_pdata.has_dc_supply = true;
+ 	}
+ 
+diff --git a/arch/arm/mach-msm/board-8064-storage.c b/arch/arm/mach-msm/board-8064-storage.c
+index b07e2fd..5ef87ca 100644
+--- a/arch/arm/mach-msm/board-8064-storage.c
++++ b/arch/arm/mach-msm/board-8064-storage.c
+@@ -357,6 +357,10 @@ void __init apq8064_init_mmc(void)
+ 			apq8064_sdc3_pdata->wpswitch_gpio = 0;
+ 			apq8064_sdc3_pdata->is_wpswitch_active_low = false;
+ 		}
++		if (!machine_is_apq8064_ifc6412()) {
++			apq8064_sdc3_pdata->wpswitch_gpio = 0;
++			apq8064_sdc3_pdata->is_wpswitch_active_low = false;
++		}
+ 		if (machine_is_mpq8064_cdp() || machine_is_mpq8064_hrd() ||
+ 			machine_is_mpq8064_dtv()) {
+ 			int rc;
+@@ -383,7 +387,7 @@ void __init apq8064_init_mmc(void)
+ 				apq8064_sdc3_pdata->status_irq = 0;
+ 			}
+ 		}
+-		if (machine_is_apq8064_cdp()) {
++		if (machine_is_apq8064_cdp() || machine_is_apq8064_ifc6412()) {
+ 			int i;
+ 
+ 			for (i = 0;
+diff --git a/arch/arm/mach-msm/board-8064.c b/arch/arm/mach-msm/board-8064.c
+index 7fcee9b..483cd78 100644
+--- a/arch/arm/mach-msm/board-8064.c
++++ b/arch/arm/mach-msm/board-8064.c
+@@ -3162,6 +3162,8 @@ static void __init register_i2c_devices(void)
+ 	/* Build the matching 'supported_machs' bitmask */
+ 	if (machine_is_apq8064_cdp())
+ 		mach_mask = I2C_SURF;
++	else if (machine_is_apq8064_ifc6412())
++		mach_mask = I2C_SURF;
+ 	else if (machine_is_apq8064_mtp())
+ 		mach_mask = I2C_FFA;
+ 	else if (machine_is_apq8064_liquid())
+@@ -3417,7 +3419,7 @@ static void __init apq8064_cdp_init(void)
+ 		platform_device_register(&mpq8064_device_uartdm_gsbi6);
+ 	}
+ 
+-	if (machine_is_apq8064_cdp() || machine_is_apq8064_liquid())
++	if (machine_is_apq8064_cdp() || machine_is_apq8064_liquid() || machine_is_apq8064_ifc6412())
+ 		platform_device_register(&cdp_kp_pdev);
+ 
+ 	if (machine_is_apq8064_mtp())
+@@ -3441,6 +3443,18 @@ MACHINE_START(APQ8064_CDP, "QCT APQ8064 CDP")
+ 	.restart = msm_restart,
+ MACHINE_END
+ 
++MACHINE_START(APQ8064_IFC6412, "QCT APQ8064 IFC6412")
++        .map_io = apq8064_map_io,
++        .reserve = apq8064_reserve,
++        .init_irq = apq8064_init_irq,
++        .handle_irq = gic_handle_irq,
++        .timer = &msm_timer,
++        .init_machine = apq8064_cdp_init,
++        .init_early = apq8064_allocate_memory_regions,
++        .init_very_early = apq8064_early_reserve,
++        .restart = msm_restart,
++MACHINE_END
++
+ MACHINE_START(APQ8064_MTP, "QCT APQ8064 MTP")
+ 	.map_io = apq8064_map_io,
+ 	.reserve = apq8064_reserve,
+diff --git a/arch/arm/tools/mach-types b/arch/arm/tools/mach-types
+index aa50e16..ee70419 100644
+--- a/arch/arm/tools/mach-types
++++ b/arch/arm/tools/mach-types
+@@ -1185,6 +1185,7 @@ ipod_touch_2g		MACH_IPOD_TOUCH_2G	IPOD_TOUCH_2G		3890
+ da850_pqab		MACH_DA850_PQAB		DA850_PQAB		3891
+ msm7627a_evb		MACH_MSM7627A_EVB	MSM7627A_EVB		3934
+ apq8064_cdp		MACH_APQ8064_CDP	APQ8064_CDP		3948
++apq8064_ifc6412	MACH_APQ8064_IFC6412	APQ8064_IFC6412		3956
+ apq8064_mtp		MACH_APQ8064_MTP	APQ8064_MTP		3949
+ apq8064_liquid		MACH_APQ8064_LIQUID	APQ8064_LIQUID		3951
+ mpq8064_cdp		MACH_MPQ8064_CDP	MPQ8064_CDP		3993
+-- 
+1.7.9.5
+

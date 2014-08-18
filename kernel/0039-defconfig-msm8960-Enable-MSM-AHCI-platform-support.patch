@@ -1,0 +1,56 @@
+From 965fd4dc653d18a84c2d58117c882bfb5cd113dd Mon Sep 17 00:00:00 2001
+From: Sujit Reddy Thumma <sthumma@codeaurora.org>
+Date: Tue, 12 Nov 2013 16:17:14 +0530
+Subject: [PATCH 3/5] defconfig: msm8960: Enable MSM AHCI platform support
+
+Change-Id: I35472e8c1af911024eadb93e5249e642c48dffd3
+---
+ arch/arm/configs/msm8960-perf_defconfig |    3 ++-
+ arch/arm/configs/msm8960_defconfig      |    3 ++-
+ 2 files changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm/configs/msm8960-perf_defconfig b/arch/arm/configs/msm8960-perf_defconfig
+index 3238994..9038e9f 100644
+--- a/arch/arm/configs/msm8960-perf_defconfig
++++ b/arch/arm/configs/msm8960-perf_defconfig
+@@ -278,7 +278,6 @@ CONFIG_HAPTIC_ISA1200=y
+ CONFIG_PMIC8XXX_VIBRATOR=y
+ CONFIG_QSEECOM=y
+ CONFIG_USB_HSIC_SMSC_HUB=y
+-CONFIG_SCSI=y
+ CONFIG_SCSI_TGT=y
+ CONFIG_BLK_DEV_SD=y
+ CONFIG_CHR_DEV_SG=y
+@@ -287,6 +286,8 @@ CONFIG_SCSI_MULTI_LUN=y
+ CONFIG_SCSI_CONSTANTS=y
+ CONFIG_SCSI_LOGGING=y
+ CONFIG_SCSI_SCAN_ASYNC=y
++CONFIG_ATA=y
++CONFIG_SATA_AHCI_MSM=y
+ CONFIG_MD=y
+ CONFIG_BLK_DEV_DM=y
+ CONFIG_DM_CRYPT=y
+diff --git a/arch/arm/configs/msm8960_defconfig b/arch/arm/configs/msm8960_defconfig
+index b6f0558..f533226 100644
+--- a/arch/arm/configs/msm8960_defconfig
++++ b/arch/arm/configs/msm8960_defconfig
+@@ -282,7 +282,6 @@ CONFIG_HAPTIC_ISA1200=y
+ CONFIG_PMIC8XXX_VIBRATOR=y
+ CONFIG_QSEECOM=y
+ CONFIG_USB_HSIC_SMSC_HUB=y
+-CONFIG_SCSI=y
+ CONFIG_SCSI_TGT=y
+ CONFIG_BLK_DEV_SD=y
+ CONFIG_CHR_DEV_SG=y
+@@ -291,6 +290,8 @@ CONFIG_SCSI_MULTI_LUN=y
+ CONFIG_SCSI_CONSTANTS=y
+ CONFIG_SCSI_LOGGING=y
+ CONFIG_SCSI_SCAN_ASYNC=y
++CONFIG_ATA=y
++CONFIG_SATA_AHCI_MSM=y
+ CONFIG_MD=y
+ CONFIG_BLK_DEV_DM=y
+ CONFIG_DM_CRYPT=y
+-- 
+1.7.9.5
+

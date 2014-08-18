@@ -1,0 +1,31 @@
+From 9f79d4d5ce97847a3506da7b1617298b26cb32a6 Mon Sep 17 00:00:00 2001
+From: Kiran Rudramuni <kchitrik@codeaurora.org>
+Date: Fri, 13 Dec 2013 11:04:40 +0530
+Subject: [PATCH 02/35] Disabling battery circuitry to avoid thermal reboot
+ issue
+
+Change-Id: If611cbb8f93c267976e921637a9ce9550f01f2e3
+
+Signed-off-by: Suman Kumar <suman@inforcecomputing.com>
+---
+ arch/arm/configs/msm8960_defconfig |    4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm/configs/msm8960_defconfig b/arch/arm/configs/msm8960_defconfig
+index 8dd958e..a27786c 100644
+--- a/arch/arm/configs/msm8960_defconfig
++++ b/arch/arm/configs/msm8960_defconfig
+@@ -353,7 +353,9 @@ CONFIG_POWER_SUPPLY=y
+ # CONFIG_BATTERY_MSM is not set
+ CONFIG_ISL9519_CHARGER=y
+ CONFIG_SMB349_CHARGER=y
+-CONFIG_PM8921_CHARGER=y
++CONFIG_MSM_FAKE_BATTERY=y
++CONFIG_PM8921_CHARGER=n
++CONFIG_PM8XXX_CCADC=n
+ CONFIG_PM8921_BMS=y
+ CONFIG_BATTERY_BCL=y
+ CONFIG_SENSORS_PM8XXX_ADC=y
+-- 
+1.7.9.5
+

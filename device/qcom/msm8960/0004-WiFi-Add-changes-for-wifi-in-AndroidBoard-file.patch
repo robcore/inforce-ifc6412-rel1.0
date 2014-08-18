@@ -1,0 +1,43 @@
+From fa15669666fa00efb19b9f6e16ab377bd1c521d0 Mon Sep 17 00:00:00 2001
+From: Arjun Prasad <arjun@inforcecomputing.com>
+Date: Fri, 11 Apr 2014 17:56:39 +0530
+Subject: [PATCH 5/5] WiFi:Add changes for wifi in AndroidBoard file
+
+Change-Id: I4cf9e5f07b9dc74738d8d81f78b09c76f80f724d
+---
+ AndroidBoard.mk |   12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/AndroidBoard.mk b/AndroidBoard.mk
+index 70bce34..e32e6a0 100755
+--- a/AndroidBoard.mk
++++ b/AndroidBoard.mk
+@@ -64,7 +64,15 @@ LOCAL_MODULE_CLASS := ETC
+ LOCAL_SRC_FILES    := $(LOCAL_MODULE)
+ include $(BUILD_PREBUILT)
+ 
+-ifeq ($(strip $(BOARD_HAS_QCOM_WLAN)),true)
++#ifeq ($(strip $(BOARD_HAS_QCOM_WLAN)),true)
++include $(CLEAR_VARS)
++LOCAL_MODULE       := wpa_supplicant.conf
++LOCAL_MODULE_TAGS  := optional
++LOCAL_MODULE_CLASS := ETC
++LOCAL_SRC_FILES    := $(LOCAL_MODULE)
++LOCAL_MODULE_PATH  := $(TARGET_OUT_ETC)/wifi
++include $(BUILD_PREBUILT)
++
+ include $(CLEAR_VARS)
+ LOCAL_MODULE       := wpa_supplicant_overlay.conf
+ LOCAL_MODULE_TAGS  := optional
+@@ -112,7 +120,7 @@ $(shell mkdir -p $(TARGET_OUT_ETC)/firmware/wlan/prima; \
+ 	ln -sf /data/misc/wifi/WCNSS_qcom_cfg.ini \
+ 	$(TARGET_OUT_ETC)/firmware/wlan/prima/WCNSS_qcom_cfg.ini)
+ 
+-endif
++#endif
+ 
+ include $(CLEAR_VARS)
+ LOCAL_MODULE       := keypad_8960.kl
+-- 
+1.7.9.5
+

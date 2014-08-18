@@ -1,0 +1,123 @@
+From 692baf95057e1330c5112217f083edabe70f894e Mon Sep 17 00:00:00 2001
+From: Arjun Prasad <arjun@inforcecomputing.com>
+Date: Tue, 25 Mar 2014 10:48:43 +0530
+Subject: [PATCH 24/35] Wifi:Enabling board support for Android 4.4.2
+
+Change-Id: Ifc7a8fec6de95882294fd59f3513a2c9d1ddad0e
+---
+ arch/arm/mach-msm/board-8064-pmic.c      |    2 ++
+ arch/arm/mach-msm/board-8064-regulator.c |    2 ++
+ arch/arm/mach-msm/board-8064-storage.c   |   23 +++++++++++++++++++++++
+ arch/arm/mach-msm/board-8064.c           |   12 ++++++++++++
+ 4 files changed, 39 insertions(+)
+
+diff --git a/arch/arm/mach-msm/board-8064-pmic.c b/arch/arm/mach-msm/board-8064-pmic.c
+index b8bb8a3..f96b0c8 100644
+--- a/arch/arm/mach-msm/board-8064-pmic.c
++++ b/arch/arm/mach-msm/board-8064-pmic.c
+@@ -128,6 +128,8 @@ static struct pm8xxx_gpio_init pm8921_gpios[] __initdata = {
+ 	PM8921_GPIO_OUTPUT(34, 0, MED),
+ 	PM8921_GPIO_OUTPUT(13, 0, HIGH),               /* PCIE_CLK_PWR_EN */
+ 	PM8921_GPIO_INPUT(6, PM_GPIO_PULL_UP_30),     /* PCIE_WAKE_N */
++	PM8921_GPIO_OUTPUT(43, 1, HIGH),
++	PM8921_GPIO_OUTPUT(44, 1, HIGH),
+ #ifdef CONFIG_OV5640
+ 	PM8921_GPIO_OUTPUT(28,1, MED),
+ #endif
+diff --git a/arch/arm/mach-msm/board-8064-regulator.c b/arch/arm/mach-msm/board-8064-regulator.c
+index 0ee8306..2313f97 100644
+--- a/arch/arm/mach-msm/board-8064-regulator.c
++++ b/arch/arm/mach-msm/board-8064-regulator.c
+@@ -209,6 +209,8 @@ VREG_CONSUMERS(S8) = {
+ VREG_CONSUMERS(LVS1) = {
+ 	REGULATOR_SUPPLY("8921_lvs1",		NULL),
+ 	REGULATOR_SUPPLY("iris_vddio",		"wcnss_wlan.0"),
++	REGULATOR_SUPPLY("sdc_vdd",		"msm_sdcc.4"),
++	REGULATOR_SUPPLY("sdc_vdd_io",		"msm_sdcc.4"),
+ };
+ VREG_CONSUMERS(LVS3) = {
+ 	REGULATOR_SUPPLY("8921_lvs3",		NULL),
+diff --git a/arch/arm/mach-msm/board-8064-storage.c b/arch/arm/mach-msm/board-8064-storage.c
+index 5ef87ca..883bc18 100644
+--- a/arch/arm/mach-msm/board-8064-storage.c
++++ b/arch/arm/mach-msm/board-8064-storage.c
+@@ -54,7 +54,15 @@ static struct msm_mmc_reg_data mmc_vdd_reg_data[MAX_SDCC_CONTROLLER] = {
+ 		.high_vol_level = 2950000,
+ 		.low_vol_level = 2950000,
+ 		.hpm_uA = 800000, /* 800mA */
++	},
++#ifdef CONFIG_MMC_MSM_SDC4_SUPPORT
++	[SDCC4] = {
++		.name = "sdc_vdd",
++		.high_vol_level = 1800000,
++		.low_vol_level = 1800000,
++		.always_on = 1,
+ 	}
++#endif
+ };
+ 
+ /* SDCC controllers may require voting for VDD IO voltage */
+@@ -82,7 +90,15 @@ static struct msm_mmc_reg_data mmc_vdd_io_reg_data[MAX_SDCC_CONTROLLER] = {
+ 		 * during sleep.
+ 		 */
+ 		.lpm_uA = 2000,
++	},
++#ifdef CONFIG_MMC_MSM_SDC4_SUPPORT
++	[SDCC4] = {
++		.name = "sdc_vdd_io",
++		.always_on = 1,
++		.high_vol_level = 1800000,
++		.low_vol_level = 1800000,
+ 	}
++#endif
+ };
+ 
+ static struct msm_mmc_slot_reg_data mmc_slot_vreg_data[MAX_SDCC_CONTROLLER] = {
+@@ -95,7 +111,13 @@ static struct msm_mmc_slot_reg_data mmc_slot_vreg_data[MAX_SDCC_CONTROLLER] = {
+ 	[SDCC3] = {
+ 		.vdd_data = &mmc_vdd_reg_data[SDCC3],
+ 		.vdd_io_data = &mmc_vdd_io_reg_data[SDCC3],
++	},
++#ifdef CONFIG_MMC_MSM_SDC4_SUPPORT
++	[SDCC4] = {
++		.vdd_data = &mmc_vdd_reg_data[SDCC4],
++		.vdd_io_data = &mmc_vdd_io_reg_data[SDCC4],
+ 	}
++#endif
+ };
+ 
+ /* SDC1 pad data */
+@@ -327,6 +349,7 @@ static struct mmc_platform_data sdc4_data = {
+ 	.sup_clk_table	= sdc4_sup_clk_rates,
+ 	.sup_clk_cnt	= ARRAY_SIZE(sdc4_sup_clk_rates),
+ 	.pin_data	= &mmc_slot_pin_data[SDCC4],
++	.vreg_data      = &mmc_slot_vreg_data[SDCC4],
+ 	.sdiowakeup_irq = MSM_GPIO_TO_INT(65),
+ 	.msm_bus_voting_data = &sps_to_ddr_bus_voting_data,
+ };
+diff --git a/arch/arm/mach-msm/board-8064.c b/arch/arm/mach-msm/board-8064.c
+index eb19068..8ed771e 100644
+--- a/arch/arm/mach-msm/board-8064.c
++++ b/arch/arm/mach-msm/board-8064.c
+@@ -3632,6 +3632,18 @@ static void __init apq8064_cdp_init(void)
+ 		platform_device_register(&apq8064_device_ext_3p3v_mpp4_vreg);
+ 		platform_device_register(&apq8064_device_sata);
+ 	}
++	ret = gpio_request(PM8921_GPIO_PM_TO_SYS(43), "WLAN_RST#");
++	printk("%s: gpio_request(PM8921_GPIO_PM_TO_SYS(43),\"WLAN_RST#\") returned %d\n", __func__, ret);
++
++	ret = gpio_export(PM8921_GPIO_PM_TO_SYS(43), true);
++	printk("%s: gpio_export(PM8921_GPIO_PM_TO_SYS(43), true) returned %d\n", __func__, ret);
++
++	ret = gpio_direction_output(PM8921_GPIO_PM_TO_SYS(43), 0);
++	printk("%s: gpio_direction_output(PM8921_GPIO_PM_TO_SYS(43), 0) returned %d\n", __func__, ret);
++
++	udelay(10);
++
++	gpio_set_value(PM8921_GPIO_PM_TO_SYS(43), 1);
+ }
+ 
+ MACHINE_START(APQ8064_CDP, "QCT APQ8064 CDP")
+-- 
+1.7.9.5
+
